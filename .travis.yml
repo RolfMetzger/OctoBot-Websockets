@@ -1,0 +1,18 @@
+notifications:
+  email: false
+sudo: enabled
+os: linux
+language: python
+cache: pip
+python: 3.7-dev
+install:
+  - python3 -m pip install -r requirements.txt -r dev_requirements.txt
+
+matrix:
+  include:
+    - name: "Linux - Python 3 nightly"
+      os: linux
+      python: nightly
+      language: python
+      script:
+        - pytest -rw tests
