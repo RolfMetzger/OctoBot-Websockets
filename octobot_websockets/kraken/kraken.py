@@ -140,7 +140,7 @@ class Kraken(Feed):
             elif msg['event'] == 'systemStatus':
                 return
             elif msg['event'] == 'subscriptionStatus' and msg['status'] == 'subscribed':
-                self.channel_map[msg['channelID']] = (msg['subscription']['name'], self.get_pair_from_exchange(msg['pair']))
+                self.channel_map[msg['channelID']] = (msg['subscription']['name'], self.get_exchange_pair(msg['pair']))
             else:
                 self.logger.warning("%s: Invalid message type %s", self.get_name(), msg)
 

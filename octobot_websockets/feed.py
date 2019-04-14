@@ -8,7 +8,7 @@ import logging
 from abc import abstractmethod
 import ccxt
 
-from octobot_websockets import TRADES, TICKER, L2_BOOK, L3_BOOK, VOLUME, BOOK_DELTA, UNSUPPORTED, FUNDING
+from octobot_websockets import TRADES, TICKER, L2_BOOK, L3_BOOK, VOLUME, BOOK_DELTA, UNSUPPORTED, FUNDING, CANDLE
 from octobot_websockets.callback import Callback
 
 
@@ -46,6 +46,7 @@ class Feed:
                           TICKER: Callback(None),
                           L2_BOOK: Callback(None),
                           L3_BOOK: Callback(None),
+                          CANDLE: Callback(None),
                           VOLUME: Callback(None)}
 
         if callbacks:
@@ -110,6 +111,11 @@ class Feed:
 
     @classmethod
     @abstractmethod
+    def get_candle_feed(cls):
+        raise NotImplemented("get_candle_feed is not implemented")
+
+    @classmethod
+    @abstractmethod
     def get_funding_feed(cls):
         raise NotImplemented("get_funding_feed is not implemented")
 
@@ -127,6 +133,7 @@ class Feed:
             L2_BOOK: cls.get_L2_book_feed(),
             L3_BOOK: cls.get_L3_book_feed(),
             TRADES: cls.get_trades_feed(),
+            CANDLE: cls.get_candle_feed(),
             TICKER: cls.get_ticker_feed(),
             VOLUME: cls.get_volume_feed()
         }

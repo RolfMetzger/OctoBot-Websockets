@@ -16,6 +16,7 @@ BOOK_DELTA = 'book_delta'
 TRADES = 'trades'
 TICKER = 'ticker'
 VOLUME = 'volume'
+CANDLE = 'candle'
 FUNDING = 'funding'
 UNSUPPORTED = 'unsupported'
 

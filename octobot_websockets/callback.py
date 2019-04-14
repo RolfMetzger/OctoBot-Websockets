@@ -25,7 +25,8 @@ class Callback:
 
 
 class TradeCallback(Callback):
-    async def __call__(self, *, feed: str, pair: str, side: str, amount: Decimal, price: Decimal, order_id=None, timestamp=None):
+    async def __call__(self, *, feed: str, pair: str, side: str, amount: Decimal, price: Decimal, order_id=None,
+                       timestamp=None):
         if self.is_async:
             await self.callback(feed, pair, order_id, timestamp, side, amount, price)
         else:
@@ -45,16 +46,34 @@ class TickerCallback(Callback):
                        low: Decimal,
                        opn: Decimal):
         if self.is_async:
-            await self.callback(feed, pair, bid, ask)
+            await self.callback(feed, pair, bid, ask, close, volume, high, low, opn)
         else:
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, self.callback, feed, pair, bid, ask, close, volume, high, low, opn)
+
+
+class CandleCallback(Callback):
+    async def __call__(self, *,
+                       feed: str,
+                       pair: str,
+                       timestamp: Decimal,
+                       close: Decimal,
+                       volume: Decimal,
+                       high: Decimal,
+                       low: Decimal,
+                       opn: Decimal):
+        if self.is_async:
+            await self.callback(feed, pair, timestamp, close, volume, high, low, opn)
+        else:
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, self.callback, feed, pair, timestamp, close, volume, high, low, opn)
 
 
 class BookCallback(Callback):
     """
     For full L2/L3 book updates
     """
+
     async def __call__(self, *, feed: str, pair: str, book: dict, timestamp):
         if self.is_async:
             await self.callback(feed, pair, book, timestamp)
@@ -67,6 +86,7 @@ class BookUpdateCallback(Callback):
     """
     For Book Deltas
     """
+
     async def __call__(self, *, feed: str, pair: str, delta: dict, timestamp):
         """
         Delta is in format of:

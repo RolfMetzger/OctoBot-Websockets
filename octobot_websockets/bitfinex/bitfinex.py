@@ -12,7 +12,7 @@ from math import nan
 
 from sortedcontainers import SortedDict as sd
 
-from octobot_websockets import UNSUPPORTED, TICKER, FUNDING, TRADES, BUY, SELL, BID, ASK, L3_BOOK, L2_BOOK
+from octobot_websockets import UNSUPPORTED, TICKER, FUNDING, TRADES, BUY, SELL, BID, ASK, L3_BOOK, L2_BOOK, CANDLE
 from octobot_websockets.feed import Feed
 
 """
@@ -24,6 +24,8 @@ SEQ_ALL: Enable sequencing BETA FEATURE
 CHECKSUM: Enable checksum for every book iteration.
           Checks the top 25 entries for each side of book.
           Checksum is a signed int.
+          
+https://docs.bitfinex.com/v2/reference
 """
 DEC_S = 8
 TIME_S = 32
@@ -33,7 +35,6 @@ CHECKSUM = 131072
 
 
 class Bitfinex(Feed):
-
     def __init__(self, pairs=None, channels=None, callbacks=None, **kwargs):
         super().__init__('wss://api.bitfinex.com/ws/2', pairs=pairs, channels=channels, callbacks=callbacks, **kwargs)
         self.__reset()
@@ -51,6 +52,22 @@ class Bitfinex(Feed):
         self.order_map = defaultdict(dict)
         self.seq_no = 0
 
+    # [
+    #   CHANNEL_ID,
+    #   [
+    #     BID,
+    #     BID_SIZE,
+    #     ASK,
+    #     ASK_SIZE,
+    #     DAILY_CHANGE,
+    #     DAILY_CHANGE_PERC,
+    #     LAST_PRICE,
+    #     VOLUME,
+    #     HIGH,
+    #     LOW
+    #   ]
+    # ]
+    # https://docs.bitfinex.com/v2/reference#ws-public-ticker
     async def _ticker(self, msg):
         chan_id = msg[0]
         if msg[1] == 'hb':
@@ -72,6 +89,34 @@ class Bitfinex(Feed):
                                          low=low,
                                          opn=nan)
 
+    # TRADING
+    # [
+    #   CHANNEL_ID,
+    #   [
+    #     [
+    #       ID,
+    #       MTS,
+    #       AMOUNT,
+    #       PRICE
+    #     ],
+    #     ...
+    #   ]
+    # ]
+    # FUNDING
+    # [
+    #   CHANNEL_ID,
+    #   [
+    #     [
+    #       ID,
+    #       MTS,
+    #       AMOUNT,
+    #       RATE,
+    #       PERIOD
+    #     ],
+    #     ...
+    #   ]
+    # ]
+    # https://docs.bitfinex.com/v2/reference#ws-public-trades
     async def _trades(self, msg):
         chan_id = msg[0]
         pair = self.channel_map[chan_id]['symbol']
@@ -121,6 +166,62 @@ class Bitfinex(Feed):
             else:
                 self.logger.warning("%s: Unexpected trade message %s", self.get_name(), msg)
 
+    # [
+    #   CHANNEL_ID,
+    #   [
+    #     [
+    #       MTS,
+    #       OPEN,
+    #       CLOSE,
+    #       HIGH,
+    #       LOW,
+    #       VOLUME
+    #     ],
+    #     ...
+    #   ]
+    # ]
+    # https://docs.bitfinex.com/v2/reference#ws-public-candle
+    async def _candles(self, msg):
+        chan_id = msg[0]
+        timestamp, opn, close, high, low, volume = msg[1]
+        pair = self.channel_map[chan_id]['symbol']
+        pair = self.get_pair_from_exchange(pair)
+        await self.callbacks[CANDLE](feed=self.get_name(),
+                                     pair=pair,
+                                     timestamp=timestamp,
+                                     close=close,
+                                     volume=volume,
+                                     high=high,
+                                     low=low,
+                                     opn=opn)
+
+    # TRADING
+    # [
+    #   CHANNEL_ID,
+    #   [
+    #     [
+    #       PRICE,
+    #       COUNT,
+    #       AMOUNT
+    #     ],
+    #     ...
+    #   ]
+    # ]
+    #
+    # FUNDING
+    # [
+    #   CHANNEL_ID,
+    #   [
+    #     [
+    #       RATE,
+    #       PERIOD,
+    #       COUNT,
+    #       AMOUNT
+    #     ],
+    #     ...
+    #   ]
+    # ]
+    # https://docs.bitfinex.com/v2/reference#ws-public-order-books
     async def _book(self, msg):
         """
         For L2 book updates
@@ -175,6 +276,33 @@ class Bitfinex(Feed):
 
         await self.book_callback(pair, L2_BOOK, forced, delta, timestamp)
 
+    # TRADING
+    # [
+    #   CHANNEL_ID,
+    #   [
+    #     [
+    #       ORDER_ID,
+    #       PRICE,
+    #       AMOUNT
+    #     ],
+    #     ...
+    #   ]
+    # ]
+    #
+    # FUNDING
+    # [
+    #   CHANNEL_ID,
+    #   [
+    #     [
+    #       OFFER_ID,
+    #       PERIOD,
+    #       RATE,
+    #       AMOUNT
+    #     ],
+    #     ...
+    #   ]
+    # ]
+    # https://docs.bitfinex.com/v2/reference#ws-public-raw-order-books
     async def _raw_book(self, msg):
         """
         For L3 book updates
@@ -279,6 +407,8 @@ class Bitfinex(Feed):
                 handler = self._ticker
             elif msg['channel'] == 'trades':
                 handler = self._trades
+            elif msg['channel'] == 'candles':
+                handler = self._candles
             elif msg['channel'] == 'book':
                 if msg['prec'] == 'R0':
                     handler = self._raw_book
@@ -316,6 +446,19 @@ class Bitfinex(Feed):
                         except IndexError:
                             # any non specified params will be defaulted
                             pass
+
+                if 'candles' in channel:
+                    parts = channel.split('-')
+                    if len(parts) != 1:
+                        message['channel'] = 'candles'
+                        try:
+                            message['prec'] = parts[1]
+                            message['freq'] = parts[2]
+                            message['len'] = parts[3]
+                        except IndexError:
+                            # any non specified params will be defaulted
+                            pass
+
                 await websocket.send(json.dumps(message))
 
     @classmethod
@@ -345,3 +488,7 @@ class Bitfinex(Feed):
     @classmethod
     def get_funding_feed(cls):
         return 'trades'
+
+    @classmethod
+    def get_candle_feed(cls):
+        return 'candles'
