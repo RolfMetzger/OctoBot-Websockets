@@ -50,7 +50,7 @@ class Bitmex(Feed):
         """
         for data in msg['data']:
             await self.callbacks[TRADES](feed=self.get_name(),
-                                         pair=data['symbol'],
+                                         pair=self.get_pair_from_exchange(data['symbol']),
                                          side=BUY if data['side'] == 'Buy' else SELL,
                                          amount=Decimal(data['size']),
                                          price=Decimal(data['price']),
@@ -120,7 +120,7 @@ class Bitmex(Feed):
             self.logger.warning("%s: Unexpected L3 Book message %s", self.get_name(), msg)
             return
 
-        await self.book_callback(pair, L3_BOOK, forced, delta, timestamp)
+        await self.book_callback(self.get_pair_from_exchange(pair), L3_BOOK, forced, delta, timestamp)
 
     async def _l2_book(self, msg):
         """
@@ -140,7 +140,8 @@ class Bitmex(Feed):
                 for price, amount in update['asks']
             })
 
-        await self.callbacks[L2_BOOK](feed=self.get_name(), pair=pair, book=self.l2_book[pair], timestamp=timestamp)
+        await self.callbacks[L2_BOOK](feed=self.get_name(), pair=self.get_pair_from_exchange(pair),
+                                      book=self.l2_book[pair], timestamp=timestamp)
 
     async def _funding(self, msg):
         """
@@ -173,12 +174,11 @@ class Bitmex(Feed):
         """
         for data in msg['data']:
             await self.callbacks[FUNDING](feed=self.get_name(),
-                                          pair=data['symbol'],
+                                          pair=self.get_pair_from_exchange(data['symbol']),
                                           timestamp=data['timestamp'],
                                           interval=data['fundingInterval'],
                                           rate=data['fundingRate'],
-                                          rate_daily=data['fundingRateDaily']
-                                          )
+                                          rate_daily=data['fundingRateDaily'])
 
     async def message_handler(self, msg):
         msg = json.loads(msg, parse_float=Decimal)

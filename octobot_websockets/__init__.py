@@ -8,7 +8,7 @@ the book definitions and structure
 """
 
 PROJECT_NAME = "OctoBot-Websockets"
-SHORT_VERSION = "0.0.1"  # major.minor.revision
+VERSION = "0.0.1"  # major.minor.revision
 
 L2_BOOK = 'l2_book'
 L3_BOOK = 'l3_book'
