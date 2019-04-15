@@ -236,6 +236,10 @@ class Bitmex(Feed):
         return UNSUPPORTED
 
     @classmethod
+    def get_candle_feed(cls):
+        return UNSUPPORTED
+
+    @classmethod
     def get_funding_feed(cls):
         return 'funding'
 

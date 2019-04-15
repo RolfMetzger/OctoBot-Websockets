@@ -3,7 +3,7 @@ import asyncio
 import pytest
 
 from octobot_websockets import TICKER
-from octobot_websockets.binance.binance import Binance
+from octobot_websockets.bitmex.bitmex import Bitmex
 from octobot_websockets.callback import TickerCallback
 from octobot_websockets.feedhandler import FeedHandler
 
@@ -17,9 +17,9 @@ async def ticker(feed, pair, bid, ask, close, volume, high, low, opn):
     test_ticker = True
 
 
-async def test_binance_ticker():
+async def test_bitmex_ticker():
     f = FeedHandler()
-    f.add_feed(Binance(pairs=['BTC/USDT'], channels=[TICKER], callbacks={TICKER: TickerCallback(ticker)}))
+    f.add_feed(Bitmex(pairs=['BTC/USDT'], channels=[TICKER], callbacks={TICKER: TickerCallback(ticker)}))
     f.run()
     await asyncio.sleep(5)
     assert test_ticker
