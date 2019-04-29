@@ -106,7 +106,7 @@ class FeedHandler:
                     delay = 1
                     await feed.subscribe(websocket)
                     await self._handler(websocket, feed.message_handler, feed.get_name())
-            except (ConnectionClosed, ConnectionAbortedError, ConnectionResetError, socket_error) as e:
+            except (ConnectionClosed, ConnectionAbortedError, ConnectionResetError, socket_error, CancelledError) as e:
                 self.logger.warning("%s: encountered connection issue %s - reconnecting...", feed.get_name(), str(e))
                 await asyncio.sleep(delay)
                 retries += 1
