@@ -4,40 +4,27 @@ Copyright (C) 2017-2019  Bryant Moscon - bmoscon@gmail.com
 Please see the LICENSE file for the terms and conditions
 associated with this software.
 """
-import asyncio
-import inspect
+from asyncio import get_event_loop
 from decimal import Decimal
 
 
 class Callback:
     def __init__(self, callback):
         self.callback = callback
-        self.is_async = inspect.iscoroutinefunction(callback)
 
     async def __call__(self, *args, **kwargs):
-        if self.callback is None:
-            return
-        elif self.is_async:
-            await self.callback(**kwargs)
-        else:
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, self.callback)
+        raise NotImplemented
 
 
 class TradeCallback(Callback):
-    async def __call__(self, *, feed: str, pair: str, side: str, amount: Decimal, price: Decimal, order_id=None,
-                       timestamp=None):
-        if self.is_async:
-            await self.callback(feed, pair, order_id, timestamp, side, amount, price)
-        else:
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, self.callback, feed, pair, order_id, timestamp, side, amount, price)
+    async def __call__(self, *, feed: str, symbol: str, side: str, amount: Decimal, price: Decimal, timestamp=None):
+        await get_event_loop().run_in_executor(None, self.callback, feed, symbol, timestamp, side, amount, price)
 
 
 class TickerCallback(Callback):
     async def __call__(self, *,
                        feed: str,
-                       pair: str,
+                       symbol: str,
                        bid: Decimal,
                        ask: Decimal,
                        close: Decimal,
@@ -45,28 +32,20 @@ class TickerCallback(Callback):
                        high: Decimal,
                        low: Decimal,
                        opn: Decimal):
-        if self.is_async:
-            await self.callback(feed, pair, bid, ask, close, volume, high, low, opn)
-        else:
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, self.callback, feed, pair, bid, ask, close, volume, high, low, opn)
+        await get_event_loop().run_in_executor(None, self.callback, feed, symbol, bid, ask, close, volume, high, low, opn)
 
 
 class CandleCallback(Callback):
     async def __call__(self, *,
                        feed: str,
-                       pair: str,
+                       symbol: str,
                        timestamp: Decimal,
                        close: Decimal,
                        volume: Decimal,
                        high: Decimal,
                        low: Decimal,
                        opn: Decimal):
-        if self.is_async:
-            await self.callback(feed, pair, timestamp, close, volume, high, low, opn)
-        else:
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, self.callback, feed, pair, timestamp, close, volume, high, low, opn)
+        await get_event_loop().run_in_executor(None, self.callback, feed, symbol, timestamp, close, volume, high, low, opn)
 
 
 class BookCallback(Callback):
@@ -74,12 +53,8 @@ class BookCallback(Callback):
     For full L2/L3 book updates
     """
 
-    async def __call__(self, *, feed: str, pair: str, book: dict, timestamp):
-        if self.is_async:
-            await self.callback(feed, pair, book, timestamp)
-        else:
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, self.callback, feed, pair, book, timestamp)
+    async def __call__(self, *, feed: str, symbol: str, asks: dict, bids: dict, timestamp):
+        await get_event_loop().run_in_executor(None, self.callback, feed, symbol, asks, bids, timestamp)
 
 
 class BookUpdateCallback(Callback):
@@ -107,11 +82,7 @@ class BookUpdateCallback(Callback):
         DEL - price levels should be deleted
         UPD - prices should have the quantity set to size (these are not price deltas)
         """
-        if self.is_async:
-            await self.callback(feed, pair, delta, timestamp)
-        else:
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, self.callback, feed, pair, delta, timestamp)
+        await get_event_loop().run_in_executor(None, self.callback, feed, pair, delta, timestamp)
 
 
 class VolumeCallback(Callback):

@@ -13,12 +13,12 @@ test_book = False
 test_trade = False
 
 
-async def book(feed, pair, book, timestamp):
+def book(feed, symbob, asks, bids, timestamp):
     global test_book
     test_book = True
 
 
-async def trade(feed, pair, order_id, timestamp, side, amount, price):
+def trade(feed, symbob, timestamp, side, amount, price):
     global test_trade
     test_trade = True
 

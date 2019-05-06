@@ -6,7 +6,9 @@ associated with this software.
 """
 import logging
 from abc import abstractmethod
+
 import ccxt
+from ccxt.base.exchange import Exchange as ccxtExchange
 
 from octobot_websockets import TRADES, TICKER, L2_BOOK, L3_BOOK, VOLUME, BOOK_DELTA, UNSUPPORTED, FUNDING, CANDLE
 from octobot_websockets.callback import Callback
@@ -156,3 +158,7 @@ class Feed:
             self.logger.error("{} is not supported on {}".format(feed, self.get_name()))
             raise ValueError(f"{feed} is not supported on {self.get_name()}")
         return ret
+
+    @staticmethod
+    def safe_float(dictionary, key, default_value=None):
+        return ccxtExchange.safe_float(dictionary, key, default_value)

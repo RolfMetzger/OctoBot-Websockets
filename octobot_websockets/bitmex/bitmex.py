@@ -50,11 +50,10 @@ class Bitmex(Feed):
         """
         for data in msg['data']:
             await self.callbacks[TRADES](feed=self.get_name(),
-                                         pair=self.get_pair_from_exchange(data['symbol']),
+                                         symbol=self.get_pair_from_exchange(data['symbol']),
                                          side=BUY if data['side'] == 'Buy' else SELL,
                                          amount=Decimal(data['size']),
                                          price=Decimal(data['price']),
-                                         order_id=data['trdMatchID'],
                                          timestamp=data['timestamp'])
 
     async def _book(self, msg):
@@ -140,8 +139,11 @@ class Bitmex(Feed):
                 for price, amount in update['asks']
             })
 
-        await self.callbacks[L2_BOOK](feed=self.get_name(), pair=self.get_pair_from_exchange(pair),
-                                      book=self.l2_book[pair], timestamp=timestamp)
+        await self.callbacks[L2_BOOK](feed=self.get_name(),
+                                      symbol=self.get_pair_from_exchange(pair),
+                                      asks=self.l2_book[pair][ASK],
+                                      bids=self.l2_book[pair][BID],
+                                      timestamp=timestamp)
 
     async def _funding(self, msg):
         """
@@ -174,7 +176,7 @@ class Bitmex(Feed):
         """
         for data in msg['data']:
             await self.callbacks[FUNDING](feed=self.get_name(),
-                                          pair=self.get_pair_from_exchange(data['symbol']),
+                                          symbol=self.get_pair_from_exchange(data['symbol']),
                                           timestamp=data['timestamp'],
                                           interval=data['fundingInterval'],
                                           rate=data['fundingRate'],

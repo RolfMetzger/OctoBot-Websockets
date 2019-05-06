@@ -1,29 +1,29 @@
-from octobot_websockets import BID, ASK, TRADES, L2_BOOK
+from octobot_websockets import TRADES, L2_BOOK
 from octobot_websockets.bitmex.bitmex import Bitmex
 from octobot_websockets.callback import TradeCallback, BookCallback
 from octobot_websockets.feedhandler import FeedHandler
 
 
-async def ticker(feed, pair, bid, ask, close, volume, high, low, opn):
-    print(f'Feed: {feed} Pair: {pair} Bid: {bid} Ask: {ask}')
+def ticker(feed, symbol, bid, ask, close, volume, high, low, opn):
+    print(f'Feed: {feed} Pair: {symbol} Bid: {bid} Ask: {ask}')
 
 
-async def trade(feed, pair, order_id, timestamp, side, amount, price):
+def trade(feed, symbol, timestamp, side, amount, price):
     print(
-        f"Timestamp: {timestamp} Feed: {feed} Pair: {pair} ID: {order_id} Side: {side} Amount: {amount} Price: {price}")
+        f"Timestamp: {timestamp} Feed: {feed} Pair: {symbol} Side: {side} Amount: {amount} Price: {price}")
 
 
-async def book(feed, pair, book, timestamp):
-    print(f'Timestamp: {timestamp} Feed: {feed} Pair: {pair} '
-          f'Book Bid Size is {len(book[BID])} '
-          f'Ask Size is {len(book[ASK])}')
+def book(feed, symbol, asks, bids, timestamp):
+    print(f'Timestamp: {timestamp} Feed: {feed} Pair: {symbol} '
+          f'Book Bid Size is {len(bids)} '
+          f'Ask Size is {len(asks)}')
 
 
-async def candle(feed, pair, timestamp, close, volume, high, low, opn):
-    print(f'Feed: {feed} Pair: {pair} Close: {close} Volume: {volume} High: {high} Low: {low} Open: {opn}')
+def candle(feed, symbol, timestamp, close, volume, high, low, opn):
+    print(f'Feed: {feed} Pair: {symbol} Close: {close} Volume: {volume} High: {high} Low: {low} Open: {opn}')
 
 
-async def funding(**kwargs):
+def funding(**kwargs):
     print(f"Funding Update for {kwargs['feed']}")
     print(kwargs)
 
