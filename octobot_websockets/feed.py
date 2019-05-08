@@ -25,7 +25,8 @@ import ccxt
 import websockets
 from ccxt.base.exchange import Exchange as ccxtExchange
 
-from octobot_websockets import TRADES, TICKER, L2_BOOK, L3_BOOK, VOLUME, BOOK_DELTA, UNSUPPORTED, FUNDING, CANDLE
+from octobot_websockets import TRADES, TICKER, L2_BOOK, L3_BOOK, BOOK_DELTA, UNSUPPORTED, FUNDING, CANDLE, POSITION, \
+    ORDERS, PORTFOLIO
 from octobot_websockets.callback import Callback
 
 
@@ -73,18 +74,17 @@ class Feed:
         self.ccxt_client = getattr(ccxt, self.get_name())()
         self.ccxt_client.load_markets()
 
-        if pairs:
-            self.pairs = [self.get_exchange_pair(pair) for pair in pairs]
-
-        if channels:
-            self.channels = [self.feed_to_exchange(chan) for chan in channels]
+        self.pairs = [self.get_exchange_pair(pair) for pair in pairs] if pairs else []
+        self.channels = [self.feed_to_exchange(chan) for chan in channels] if channels else []
 
         self.callbacks = {TRADES: Callback(None),
                           TICKER: Callback(None),
                           L2_BOOK: Callback(None),
                           L3_BOOK: Callback(None),
                           CANDLE: Callback(None),
-                          VOLUME: Callback(None)}
+                          PORTFOLIO: Callback(None),
+                          ORDERS: Callback(None),
+                          POSITION: Callback(None)}
 
         if callbacks:
             for cb_type, cb_func in callbacks.items():
@@ -135,7 +135,6 @@ class Feed:
                 await asyncio.sleep(delay)
                 retries += 1
                 delay *= 2
-                raise e
 
     async def _handler(self):
         async for message in self.websocket:
@@ -167,7 +166,7 @@ class Feed:
         self._websocket_task.cancel()
 
     def get_auth(self):
-        return []
+        return []  # to be overwritten
 
     @abstractmethod
     async def on_message(self, message):
@@ -207,11 +206,6 @@ class Feed:
 
     @classmethod
     @abstractmethod
-    def get_volume_feed(cls):
-        raise NotImplemented("get_volume_feed is not implemented")
-
-    @classmethod
-    @abstractmethod
     def get_candle_feed(cls):
         raise NotImplemented("get_candle_feed is not implemented")
 
@@ -220,7 +214,22 @@ class Feed:
     def get_funding_feed(cls):
         raise NotImplemented("get_funding_feed is not implemented")
 
-    def get_pairs(self):
+    @classmethod
+    @abstractmethod
+    def get_portfolio_feed(cls):
+        raise NotImplemented("get_portfolio_feed is not implemented")
+
+    @classmethod
+    @abstractmethod
+    def get_orders_feed(cls):
+        raise NotImplemented("get_orders_feed is not implemented")
+
+    @classmethod
+    @abstractmethod
+    def get_position_feed(cls):
+        raise NotImplemented("get_position_feed is not implemented")
+
+    def get_pairs(self) -> List:
         return self.ccxt_client.symbols
 
     @staticmethod
@@ -228,7 +237,7 @@ class Feed:
         return ts
 
     @classmethod
-    def get_feeds(cls):
+    def get_feeds(cls) -> Dict:
         return {
             FUNDING: cls.get_funding_feed(),
             L2_BOOK: cls.get_L2_book_feed(),
@@ -236,13 +245,15 @@ class Feed:
             TRADES: cls.get_trades_feed(),
             CANDLE: cls.get_candle_feed(),
             TICKER: cls.get_ticker_feed(),
-            VOLUME: cls.get_volume_feed()
+            POSITION: cls.get_position_feed(),
+            ORDERS: cls.get_orders_feed(),
+            PORTFOLIO: cls.get_portfolio_feed()
         }
 
-    def get_pair_from_exchange(self, pair):
+    def get_pair_from_exchange(self, pair) -> str:
         return self.ccxt_client.find_market(pair)["symbol"]
 
-    def get_exchange_pair(self, pair):
+    def get_exchange_pair(self, pair) -> str:
         if pair in self.ccxt_client.symbols:
             try:
                 return self.ccxt_client.find_market(pair)["id"]

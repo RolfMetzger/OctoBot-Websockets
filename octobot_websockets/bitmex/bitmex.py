@@ -4,7 +4,8 @@ from collections import defaultdict
 from datetime import datetime as dt
 from sortedcontainers import SortedDict as sd
 
-from octobot_websockets import TRADES, BUY, SELL, BID, ASK, L2_BOOK, FUNDING, UNSUPPORTED, TICKER, ASKS, BIDS, L3_BOOK
+from octobot_websockets import TRADES, BUY, SELL, BID, ASK, L2_BOOK, FUNDING, UNSUPPORTED, TICKER, ASKS, BIDS, L3_BOOK, \
+    POSITION, ORDERS
 from octobot_websockets.bitmex.api_key import generate_signature, generate_nonce
 from octobot_websockets.feed import Feed
 
@@ -70,11 +71,144 @@ class Bitmex(Feed):
         except TypeError:
             pass
 
-    async def _margin(self, msg):
-        pass
+    async def _order(self, msg):
+        """
+        {
+           "table":"execution",
+           "action":"insert",
+           "data":[
+              {
+                 "execID":"0193e879-cb6f-2891-d099-2c4eb40fee21",
+                 "orderID":"00000000-0000-0000-0000-000000000000",
+                 "clOrdID":"",
+                 "clOrdLinkID":"",
+                 "account":2,
+                 "symbol":"XBTUSD",
+                 "side":"Sell",
+                 "lastQty":1,
+                 "lastPx":1134.37,
+                 "underlyingLastPx":null,
+                 "lastMkt":"XBME",
+                 "lastLiquidityInd":"RemovedLiquidity",
+                 "simpleOrderQty":null,
+                 "orderQty":1,
+                 "price":1134.37,
+                 "displayQty":null,
+                 "stopPx":null,
+                 "pegOffsetValue":null,
+                 "pegPriceType":"",
+                 "currency":"USD",
+                 "settlCurrency":"XBt",
+                 "execType":"Trade",
+                 "ordType":"Limit",
+                 "timeInForce":"ImmediateOrCancel",
+                 "execInst":"",
+                 "contingencyType":"",
+                 "exDestination":"XBME",
+                 "ordStatus":"Filled",
+                 "triggered":"",
+                 "workingIndicator":false,
+                 "ordRejReason":"",
+                 "simpleLeavesQty":0,
+                 "leavesQty":0,
+                 "simpleCumQty":0.001,
+                 "cumQty":1,
+                 "avgPx":1134.37,
+                 "commission":0.00075,
+                 "tradePublishIndicator":"DoNotPublishTrade",
+                 "multiLegReportingType":"SingleSecurity",
+                 "text":"Liquidation",
+                 "trdMatchID":"7f4ab7f6-0006-3234-76f4-ae1385aad00f",
+                 "execCost":88155,
+                 "execComm":66,
+                 "homeNotional":-0.00088155,
+                 "foreignNotional":1,
+                 "transactTime":"2017-04-04T22:07:46.035Z",
+                 "timestamp":"2017-04-04T22:07:46.035Z"
+              }
+           ]
+        }
+        """
+        is_canceled = 'ordStatus' in msg['data'] and msg['data']['ordStatus'] == 'Canceled'
+        is_filled = 'ordStatus' in msg['data'] and msg['data']['ordStatus'] == 'Filled'
+        await self.callbacks[ORDERS](feed=self.get_name(),
+                                     symbol=self.get_pair_from_exchange(msg['data']['symbol']),
+                                     price=msg['data']['avgEntryPrice'],
+                                     quantity=msg['data']['cumQty'],
+                                     order_id=msg['data']['orderID'],
+                                     is_canceled=is_canceled,
+                                     is_filled=is_filled)
 
     async def _position(self, msg):
-        pass
+        """
+        {
+           "table":"position",
+           "action":"update",
+           "data":[
+              {
+                 "account":2,
+                 "symbol":"XBTUSD",
+                 "currency":"XBt",
+                 "deleveragePercentile":null,
+                 "rebalancedPnl":-2171150,
+                 "prevRealisedPnl":2172153,
+                 "execSellQty":2001,
+                 "execSellCost":172394155,
+                 "execQty":0,
+                 "execCost":-2259128,
+                 "execComm":87978,
+                 "currentTimestamp":"2017-04-04T22:16:38.547Z",
+                 "currentQty":0,
+                 "currentCost":-2259128,
+                 "currentComm":87978,
+                 "realisedCost":-2259128,
+                 "unrealisedCost":0,
+                 "grossExecCost":0,
+                 "isOpen":false,
+                 "markPrice":null,
+                 "markValue":0,
+                 "riskValue":0,
+                 "homeNotional":0,
+                 "foreignNotional":0,
+                 "posState":"",
+                 "posCost":0,
+                 "posCost2":0,
+                 "posInit":0,
+                 "posComm":0,
+                 "posMargin":0,
+                 "posMaint":0,
+                 "maintMargin":0,
+                 "realisedGrossPnl":2259128,
+                 "realisedPnl":2171150,
+                 "unrealisedGrossPnl":0,
+                 "unrealisedPnl":0,
+                 "unrealisedPnlPcnt":0,
+                 "unrealisedRoePcnt":0,
+                 "simpleQty":0,
+                 "simpleCost":0,
+                 "simpleValue":0,
+                 "simplePnl":0,
+                 "simplePnlPcnt":0,
+                 "avgCostPrice":null,
+                 "avgEntryPrice":null,
+                 "breakEvenPrice":null,
+                 "marginCallPrice":null,
+                 "liquidationPrice":null,
+                 "bankruptPrice":null,
+                 "timestamp":"2017-04-04T22:16:38.547Z"
+              }
+           ]
+        }
+        """
+        await self.callbacks[POSITION](feed=self.get_name(),
+                                       symbol=self.get_pair_from_exchange(msg['data']['symbol']),
+                                       entry_price=msg['data']['avgEntryPrice'],
+                                       cost=msg['data']['simpleCost'],
+                                       quantity=msg['data']['simpleQty'],
+                                       pnl_percent=msg['data']['simplePnlPcnt'],
+                                       mark_price=msg['data']['markPrice'],
+                                       liquidation_price=msg['data']['liquidationPrice'],
+                                       timestamp=msg['data']['timestamp'])
 
     async def _funding(self, msg):
         """
@@ -144,10 +278,16 @@ class Bitmex(Feed):
                     await self._quote(message)
 
                 elif table == self.get_margin_feed():
-                    await self._margin(message)
+                    await self._position(message)
 
                 elif table == self.get_position_feed():
                     await self._position(message)
+
+                elif table == self.get_orders_feed():
+                    await self._order(message)
+
+                elif table == self.get_execution_feed():
+                    await self._order(message)
 
                 elif table == self.get_L3_book_feed():
                     await self.handle_book_update(message)
@@ -275,10 +415,6 @@ class Bitmex(Feed):
         return 'quote'
 
     @classmethod
-    def get_volume_feed(cls):
-        return UNSUPPORTED
-
-    @classmethod
     def get_candle_feed(cls):
         return UNSUPPORTED
 
@@ -293,6 +429,18 @@ class Bitmex(Feed):
     @classmethod
     def get_position_feed(cls):
         return 'position'
+
+    @classmethod
+    def get_portfolio_feed(cls):
+        return UNSUPPORTED
+
+    @classmethod
+    def get_orders_feed(cls):
+        return 'order'
+
+    @classmethod
+    def get_execution_feed(cls):
+        return 'execution'
 
     @staticmethod
     def timestamp_normalize(ts):

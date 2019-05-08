@@ -11,8 +11,15 @@ class Callback:
 
 
 class TradeCallback(Callback):
-    async def __call__(self, *, feed: str, symbol: str, side: str, amount: int, price: int, timestamp=None):
-        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, timestamp, side, amount, price), get_event_loop())
+    async def __call__(self, *,
+                       feed: str,
+                       symbol: str,
+                       side: str,
+                       amount: int,
+                       price: int,
+                       timestamp=None):
+        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, timestamp, side, amount, price),
+                                         get_event_loop())
 
 
 class TickerCallback(Callback):
@@ -22,7 +29,8 @@ class TickerCallback(Callback):
                        bid: int,
                        ask: int,
                        last: int):
-        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, bid, ask, last), get_event_loop())
+        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, bid, ask, last),
+                                         get_event_loop())
 
 
 class CandleCallback(Callback):
@@ -35,8 +43,8 @@ class CandleCallback(Callback):
                        high: int,
                        low: int,
                        opn: int):
-        asyncio.run_coroutine_threadsafe(get_event_loop(),
-                                         self.callback(feed, symbol, timestamp, close, volume, high, low, opn), get_event_loop())
+        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, timestamp, close, volume, high, low, opn),
+                                         get_event_loop())
 
 
 class BookCallback(Callback):
@@ -44,8 +52,57 @@ class BookCallback(Callback):
     For full L2/L3 book updates
     """
 
-    async def __call__(self, *, feed: str, symbol: str, asks: dict, bids: dict):
-        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, asks, bids), get_event_loop())
+    async def __call__(self, *,
+                       feed: str,
+                       symbol: str,
+                       asks: dict,
+                       bids: dict):
+        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, asks, bids),
+                                         get_event_loop())
+
+
+class OrdersCallback(Callback):
+    """
+    For orders updates
+    """
+
+    async def __call__(self, *,
+                       feed: str,
+                       symbol: str,
+                       price: int,
+                       quantity: int,
+                       order_id: int,
+                       is_canceled: bool,
+                       is_filled: bool):
+        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, price, quantity, order_id, is_canceled, is_filled),
+                                         get_event_loop())
+
+
+class PositionCallback(Callback):
+    """
+    For position updates
+    """
+
+    async def __call__(self, *,
+                       feed: str,
+                       symbol: str,
+                       entry_price: int,
+                       cost: int,
+                       quantity: int,
+                       pnl_percent: int,
+                       mark_price: int,
+                       liquidation_price: int,
+                       timestamp: str):
+        asyncio.run_coroutine_threadsafe(self.callback(feed,
+                                                       symbol,
+                                                       entry_price,
+                                                       cost,
+                                                       quantity,
+                                                       pnl_percent,
+                                                       mark_price,
+                                                       liquidation_price,
+                                                       timestamp),
+                                         get_event_loop())
 
 
 class UpdatedBookCallback(Callback):
@@ -53,7 +110,11 @@ class UpdatedBookCallback(Callback):
     For Book Deltas
     """
 
-    async def __call__(self, *, feed: str, symbol: str, asks: dict, bids: dict):
+    # NOT SUPPORTED
+    async def __call__(self, *,
+                       feed: str,
+                       symbol: str,
+                       delta: dict):
         """
         Delta is in format of:
         {
@@ -73,12 +134,13 @@ class UpdatedBookCallback(Callback):
         DEL - price levels should be deleted
         UPD - prices should have the quantity set to size (these are not price deltas)
         """
-        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, asks, bids), get_event_loop())
-
-
-class VolumeCallback(Callback):
-    pass
+        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, delta),
+                                         get_event_loop())
 
 
 class FundingCallback(Callback):
+    pass
+
+
+class PortfolioCallback(Callback):
     pass

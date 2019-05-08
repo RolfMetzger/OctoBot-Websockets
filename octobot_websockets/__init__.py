@@ -15,16 +15,18 @@
 #  License along with this library.
 
 PROJECT_NAME = "OctoBot-Websockets"
-VERSION = "0.0.3"  # major.minor.revision
+VERSION = "0.0.4"  # major.minor.revision
 
 L2_BOOK = 'l2_book'
 L3_BOOK = 'l3_book'
 BOOK_DELTA = 'book_delta'
 TRADES = 'trades'
 TICKER = 'ticker'
-VOLUME = 'volume'
 CANDLE = 'candle'
 FUNDING = 'funding'
+ORDERS = 'orders'
+PORTFOLIO = 'portfolio'
+POSITION = 'position'
 UNSUPPORTED = 'unsupported'
 
 BUY = 'buy'
