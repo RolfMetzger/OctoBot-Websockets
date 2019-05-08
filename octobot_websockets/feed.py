@@ -19,7 +19,6 @@ import logging
 from abc import abstractmethod
 from asyncio import Task, CancelledError
 from datetime import datetime, timedelta
-from ssl import socket_error
 from typing import List, Dict
 
 import ccxt
@@ -43,6 +42,7 @@ class Feed:
                  timeout_interval: int = 5):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.DEBUG)
+        self.loop = asyncio.new_event_loop()
 
         self.api_key: str = api_key
         self.api_secret: str = api_secret
@@ -93,7 +93,7 @@ class Feed:
                     self.do_deltas = True
 
     def start(self):
-        self._websocket_task = asyncio.create_task(self.__connect())
+        self._websocket_task = self.loop.run_until_complete(self.__connect())
 
     async def __watch(self):
         if self.last_msg:
@@ -125,7 +125,6 @@ class Feed:
             except (websockets.ConnectionClosed,
                     ConnectionAbortedError,
                     ConnectionResetError,
-                    socket_error,
                     CancelledError) as e:
                 self.logger.warning(f"{self.get_name()} encountered connection issue ({e}) - reconnecting...")
                 await asyncio.sleep(delay)

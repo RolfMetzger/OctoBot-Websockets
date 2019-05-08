@@ -1,4 +1,5 @@
 from asyncio import get_event_loop
+import asyncio
 
 
 class Callback:
@@ -11,7 +12,7 @@ class Callback:
 
 class TradeCallback(Callback):
     async def __call__(self, *, feed: str, symbol: str, side: str, amount: int, price: int, timestamp=None):
-        await get_event_loop().run_in_executor(None, self.callback, feed, symbol, timestamp, side, amount, price)
+        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, timestamp, side, amount, price), get_event_loop())
 
 
 class TickerCallback(Callback):
@@ -21,7 +22,7 @@ class TickerCallback(Callback):
                        bid: int,
                        ask: int,
                        last: int):
-        await get_event_loop().run_in_executor(None, self.callback, feed, symbol, bid, ask, last)
+        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, bid, ask, last), get_event_loop())
 
 
 class CandleCallback(Callback):
@@ -34,7 +35,8 @@ class CandleCallback(Callback):
                        high: int,
                        low: int,
                        opn: int):
-        await get_event_loop().run_in_executor(None, self.callback, feed, symbol, timestamp, close, volume, high, low, opn)
+        asyncio.run_coroutine_threadsafe(get_event_loop(),
+                                         self.callback(feed, symbol, timestamp, close, volume, high, low, opn), get_event_loop())
 
 
 class BookCallback(Callback):
@@ -43,7 +45,7 @@ class BookCallback(Callback):
     """
 
     async def __call__(self, *, feed: str, symbol: str, asks: dict, bids: dict):
-        await get_event_loop().run_in_executor(None, self.callback, feed, symbol, asks, bids)
+        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, asks, bids), get_event_loop())
 
 
 class UpdatedBookCallback(Callback):
@@ -71,7 +73,7 @@ class UpdatedBookCallback(Callback):
         DEL - price levels should be deleted
         UPD - prices should have the quantity set to size (these are not price deltas)
         """
-        await get_event_loop().run_in_executor(None, self.callback, feed, pair, delta, timestamp)
+        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, asks, bids), get_event_loop())
 
 
 class VolumeCallback(Callback):
