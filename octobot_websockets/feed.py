@@ -1,13 +1,29 @@
-"""
-Copyright (C) 2017-2019  Bryant Moscon - bmoscon@gmail.com
+#  Drakkar-Software OctoBot-Websockets
+#  Copyright (c) Drakkar-Software, All rights reserved.
+#
+#  This library is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU Lesser General Public
+#  License as published by the Free Software Foundation; either
+#  version 3.0 of the License, or (at your option) any later version.
+#
+#  This library is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  Lesser General Public License for more details.
+#
+#  You should have received a copy of the GNU Lesser General Public
+#  License along with this library.
 
-Please see the LICENSE file for the terms and conditions
-associated with this software.
-"""
+import asyncio
 import logging
 from abc import abstractmethod
+from asyncio import Task, CancelledError
+from datetime import datetime, timedelta
+from ssl import socket_error
+from typing import List, Dict
 
 import ccxt
+import websockets
 from ccxt.base.exchange import Exchange as ccxtExchange
 
 from octobot_websockets import TRADES, TICKER, L2_BOOK, L3_BOOK, VOLUME, BOOK_DELTA, UNSUPPORTED, FUNDING, CANDLE
@@ -15,26 +31,47 @@ from octobot_websockets.callback import Callback
 
 
 class Feed:
-    def __init__(self, address, pairs=None, channels=None, config=None, callbacks=None, book_interval=1000):
+    def __init__(self,
+                 address: str,
+                 pairs: List = None,
+                 channels: List = None,
+                 callbacks: Dict = None,
+                 api_key: str = None,
+                 api_secret: str = None,
+                 book_interval: int = 1000,
+                 timeout: int = 120,
+                 timeout_interval: int = 5):
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.config = {}
-        self.address = address
-        self.book_update_interval = book_interval
-        self.updates = 0
-        self.do_deltas = False
-        self.pairs = []
-        self.channels = []
+        self.logger.setLevel(logging.DEBUG)
 
+        self.api_key: str = api_key
+        self.api_secret: str = api_secret
+        self.address: str = address
+
+        self.timeout: int = timeout
+        self.timeout_interval: int = timeout_interval
+        self.book_update_interval: int = book_interval
+        self.updates: int = 0
+
+        self.is_connected: bool = False
+        self.do_deltas: bool = False
+
+        self.pairs: List = []
+        self.channels: List = []
+        self.callbacks: Dict = {}
+
+        self.websocket = None
+        self.ccxt_client = None
+
+        self._watch_task: Task = None
+        self._websocket_task: Task = None
+        self.last_msg: datetime = datetime.utcnow()
+
+        self.__initialize(pairs, channels, callbacks)
+
+    def __initialize(self, pairs, channels, callbacks):
         self.ccxt_client = getattr(ccxt, self.get_name())()
         self.ccxt_client.load_markets()
-
-        if config is not None and (pairs is not None or channels is not None):
-            raise ValueError("Use config, or channels and pairs, not both")
-
-        if config is not None:
-            for channel in config:
-                chan = self.feed_to_exchange(channel)
-                self.config[chan] = [self.get_exchange_pair(pair) for pair in config[channel]]
 
         if pairs:
             self.pairs = [self.get_exchange_pair(pair) for pair in pairs]
@@ -42,8 +79,6 @@ class Feed:
         if channels:
             self.channels = [self.feed_to_exchange(chan) for chan in channels]
 
-        self.l3_book = {}
-        self.l2_book = {}
         self.callbacks = {TRADES: Callback(None),
                           TICKER: Callback(None),
                           L2_BOOK: Callback(None),
@@ -57,26 +92,91 @@ class Feed:
                 if cb_type == BOOK_DELTA:
                     self.do_deltas = True
 
-    async def book_callback(self, pair, book_type, forced, delta, timestamp):
-        if self.do_deltas and self.updates < self.book_update_interval and not forced:
-            self.updates += 1
-            await self.callbacks[BOOK_DELTA](feed=self.get_name(), pair=pair, delta=delta, timestamp=timestamp)
+    def start(self):
+        self._websocket_task = asyncio.create_task(self.__connect())
 
-        if self.updates >= self.book_update_interval or forced or not self.do_deltas:
-            self.updates = 0
-            if book_type == L2_BOOK:
-                await self.callbacks[L2_BOOK](feed=self.get_name(),
-                                              pair=pair,
-                                              book=self.l2_book[pair],
-                                              timestamp=timestamp)
-            else:
-                await self.callbacks[L3_BOOK](feed=self.get_name(),
-                                              pair=pair,
-                                              book=self.l3_book[pair],
-                                              timestamp=timestamp)
+    async def __watch(self):
+        if self.last_msg:
+            if datetime.utcnow() - timedelta(seconds=self.timeout) > self.last_msg:
+                self.logger.warning("No messages received within timeout, restarting connection")
+                print("reconnect")
+                await self.__reconnect()
+        await asyncio.sleep(self.timeout_interval)
 
-    async def message_handler(self, msg):
-        raise NotImplementedError
+    async def __on_error(self, error):
+        self.logger.error(f"Error : {error}")
+
+    async def __connect(self):
+        """ Connect to websocket feeds """
+        retries = 0
+        delay = 1
+        self.watch_task = None
+        while retries <= retries:
+            try:
+                async with websockets.connect(self.address) as websocket:
+                    self.websocket = websocket
+                    await self.on_open()
+                    self._watch_task = asyncio.create_task(self.__watch())
+                    # connection was successful, reset retry count and delay
+                    self.retries = 0
+                    self.delay = 1
+                    await self.subscribe()
+                    await self._handler()
+            except (websockets.ConnectionClosed,
+                    ConnectionAbortedError,
+                    ConnectionResetError,
+                    socket_error,
+                    CancelledError) as e:
+                self.logger.warning(f"{self.get_name()} encountered connection issue ({e}) - reconnecting...")
+                await asyncio.sleep(delay)
+                retries += 1
+                delay *= 2
+            except Exception as e:
+                self.logger.error(f"{self.get_name()} encountered an exception ({e}), reconnecting...")
+                await asyncio.sleep(delay)
+                retries += 1
+                delay *= 2
+                raise e
+
+    async def _handler(self):
+        async for message in self.websocket:
+            self.last_msg = datetime.utcnow()
+            try:
+                await self.on_message(message)
+            except Exception:
+                self.logger.error(f"{self.get_name()}: error handling message {message}")
+                # exception will be logged with traceback when connection handler
+                # retries the connection
+                raise
+
+    async def __reconnect(self):
+        self.stop()
+        await self.__connect()
+
+    async def on_open(self):
+        self.logger.info("Connected")
+
+    def on_close(self):
+        self.logger.info('Websocket Closed')
+
+    def stop(self):
+        self.websocket.close()
+
+    def close(self):
+        self.stop()
+        self._watch_task.cancel()
+        self._websocket_task.cancel()
+
+    def get_auth(self):
+        return []
+
+    @abstractmethod
+    async def on_message(self, message):
+        raise NotImplemented("on_message is not implemented")
+
+    @abstractmethod
+    async def subscribe(self):
+        raise NotImplemented("subscribe is not implemented")
 
     @classmethod
     def get_name(cls):

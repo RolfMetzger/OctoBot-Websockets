@@ -1,34 +1,29 @@
-"""
-Copyright (C) 2017-2019  Bryant Moscon - bmoscon@gmail.com
-
-Please see the LICENSE file for the terms and conditions
-associated with this software.
-"""
 import calendar
 import json
 from collections import defaultdict
 from datetime import datetime as dt
-from decimal import Decimal
-
 from sortedcontainers import SortedDict as sd
 
-from octobot_websockets import TRADES, BUY, SELL, BID, ASK, L2_BOOK, L3_BOOK, FUNDING, UNSUPPORTED
+from octobot_websockets import TRADES, BUY, SELL, BID, ASK, L2_BOOK, FUNDING, UNSUPPORTED, TICKER, ASKS, BIDS, L3_BOOK
+from octobot_websockets.bitmex.api_key import generate_signature, generate_nonce
 from octobot_websockets.feed import Feed
 
 
 class Bitmex(Feed):
-    api = 'https://www.bitmex.com/api/v1/'
+    api = 'https://www.bitmex.com/api/v1'
+    MAX_TABLE_LEN = 200
 
     def __init__(self, pairs=None, channels=None, callbacks=None, **kwargs):
         super().__init__('wss://www.bitmex.com/realtime', pairs=pairs, channels=channels, callbacks=callbacks, **kwargs)
+        self.last_trade = None
         self._reset()
 
     def _reset(self):
         self.partial_received = False
         self.order_id = {}
+        self.l3_book = {}
         for pair in self.pairs:
             self.l3_book[pair] = {BID: sd(), ASK: sd()}
-            self.l2_book[pair] = {BID: sd(), ASK: sd()}
             self.order_id[pair] = defaultdict(dict)
 
     async def _trade(self, msg):
@@ -52,98 +47,34 @@ class Bitmex(Feed):
             await self.callbacks[TRADES](feed=self.get_name(),
                                          symbol=self.get_pair_from_exchange(data['symbol']),
                                          side=BUY if data['side'] == 'Buy' else SELL,
-                                         amount=Decimal(data['size']),
-                                         price=Decimal(data['price']),
+                                         amount=data['size'],
+                                         price=data['price'],
                                          timestamp=data['timestamp'])
-
-    async def _book(self, msg):
-        """
-        the Full bitmex book
-        """
-        timestamp = dt.utcnow()
-        timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-        pair = None
-        delta = {BID: [], ASK: []}
-        # if we reset the book, force a full update
-        forced = False
-        if not self.partial_received:
-            # per bitmex documentation messages received before partial
-            # should be discarded
-            if msg['action'] != 'partial':
-                return
-            self.partial_received = True
-            forced = True
-
-        if msg['action'] == 'partial' or msg['action'] == 'insert':
-            for data in msg['data']:
-                side = BID if data['side'] == 'Buy' else ASK
-                price = Decimal(data['price'])
-                pair = data['symbol']
-                size = Decimal(data['size'])
-                order_id = data['id']
-
-                if price in self.l3_book[pair][side]:
-                    self.l3_book[pair][side][price][order_id] = size
-                else:
-                    self.l3_book[pair][side][price] = {order_id: size}
-                self.order_id[pair][side][order_id] = (price, size)
-                delta[side].append((order_id, price, size))
-        elif msg['action'] == 'update':
-            for data in msg['data']:
-                side = BID if data['side'] == 'Buy' else ASK
-                pair = data['symbol']
-                update_size = Decimal(data['size'])
-                order_id = data['id']
-
-                price, _ = self.order_id[pair][side][order_id]
-
-                self.l3_book[pair][side][price][order_id] = update_size
-                self.order_id[pair][side][order_id] = (price, update_size)
-                delta[side].append((order_id, price, update_size))
-        elif msg['action'] == 'delete':
-            for data in msg['data']:
-                pair = data['symbol']
-                side = BID if data['side'] == 'Buy' else ASK
-                order_id = data['id']
-
-                delete_price, _ = self.order_id[pair][side][order_id]
-                del self.order_id[pair][side][order_id]
-                del self.l3_book[pair][side][delete_price][order_id]
-
-                if len(self.l3_book[pair][side][delete_price]) == 0:
-                    del self.l3_book[pair][side][delete_price]
-
-                delta[side].append((order_id, delete_price, 0))
-
-        else:
-            self.logger.warning("%s: Unexpected L3 Book message %s", self.get_name(), msg)
-            return
-
-        await self.book_callback(self.get_pair_from_exchange(pair), L3_BOOK, forced, delta, timestamp)
+            self.last_trade = data
 
     async def _l2_book(self, msg):
-        """
-        top 10 orders from each side
-        """
-        timestamp = msg['data'][0]['timestamp']
-        pair = None
-
-        for update in msg['data']:
-            pair = update['symbol']
-            self.l2_book[pair][BID] = sd({
-                Decimal(price): Decimal(amount)
-                for price, amount in update['bids']
-            })
-            self.l2_book[pair][ASK] = sd({
-                Decimal(price): Decimal(amount)
-                for price, amount in update['asks']
-            })
-
         await self.callbacks[L2_BOOK](feed=self.get_name(),
-                                      symbol=self.get_pair_from_exchange(pair),
-                                      asks=self.l2_book[pair][ASK],
-                                      bids=self.l2_book[pair][BID],
-                                      timestamp=timestamp)
+                                      symbol=self.get_pair_from_exchange(msg['data'][0]['symbol']),
+                                      asks=msg['data'][0]['asks'],
+                                      bids=msg['data'][0]['bids'])
+
+    async def _quote(self, msg):
+        """Return a ticker object. Generated from quote and trade."""
+        try:
+            data = msg['data'][0]
+            await self.callbacks[TICKER](feed=self.get_name(),
+                                         symbol=self.get_pair_from_exchange(data['symbol']),
+                                         bid=data['bidPrice'],
+                                         ask=data['askPrice'],
+                                         last=self.last_trade['price'])
+        except TypeError:
+            pass
+
+    async def _margin(self, msg):
+        pass
+
+    async def _position(self, msg):
+        pass
 
     async def _funding(self, msg):
         """
@@ -182,36 +113,146 @@ class Bitmex(Feed):
                                           rate=data['fundingRate'],
                                           rate_daily=data['fundingRateDaily'])
 
-    async def message_handler(self, msg):
-        msg = json.loads(msg, parse_float=Decimal)
-        if 'info' in msg:
-            self.logger.info("%s - info message: %s", self.get_name(), msg)
-        elif 'subscribe' in msg:
-            if not msg['success']:
-                self.logger.error("%s: subscribe failed: %s", self.get_name(), msg)
-        elif 'error' in msg:
-            self.logger.error("%s: Error message from exchange: %s", self.get_name(), msg)
-        else:
-            if msg['table'] == 'trade':
-                await self._trade(msg)
-            elif msg['table'] == 'orderBookL2':
-                await self._book(msg)
-            elif msg['table'] == 'funding':
-                await self._funding(msg)
-            elif msg['table'] == 'orderBook10':
-                await self._l2_book(msg)
-            else:
-                self.logger.warning("%s: Unhandled message %s", self.get_name(), msg)
+    async def on_message(self, message):
+        """Handler for parsing WS messages."""
+        message = json.loads(message)
 
-    async def subscribe(self, websocket):
-        self._reset()
+        table = message['table'] if 'table' in message else None
+        action = message['action'] if 'action' in message else None
+
+        try:
+            if 'info' in message:
+                self.logger.info(f"{self.get_name()}: info message : {message}")
+            elif 'subscribe' in message:
+                if not message['success']:
+                    self.logger.error(f"{self.get_name()}: subscribed failed : {message}")
+            elif 'status' in message:
+                if message['status'] == 400:
+                    self.logger.error(message['error'])
+                if message['status'] == 401:
+                    self.logger.error("API Key incorrect, please check and restart.")
+            elif 'error' in message:
+                self.logger.error(f"{self.get_name()}: Error message from exchange: {message}")
+            elif action:
+                if table == self.get_trades_feed():
+                    await self._trade(message)
+
+                elif table == self.get_funding_feed():
+                    await self._funding(message)
+
+                elif table == self.get_ticker_feed():
+                    await self._quote(message)
+
+                elif table == self.get_margin_feed():
+                    await self._margin(message)
+
+                elif table == self.get_position_feed():
+                    await self._position(message)
+
+                elif table == self.get_L3_book_feed():
+                    await self.handle_book_update(message)
+
+                elif table == self.get_L2_book_feed():
+                    await self._l2_book(message)
+                else:
+                    raise Exception(f"Unknown action: {action}")
+        except Exception as e:
+            self.logger.error(f"Error when handling message {e}")
+            raise e
+
+    async def handle_book_update(self, msg):
+        delta = {BID: [], ASK: []}
+        pair = None
+        # if we reset the book, force a full update
+        forced = False
+        is_partial = msg['action'] == 'partial'
+        if not self.partial_received:
+            # per bitmex documentation messages received before partial
+            # should be discarded
+            if not is_partial:
+                print("return")
+                return
+            else:
+                self.partial_received = True
+            forced = True
+
+        if is_partial or msg['action'] == 'insert':
+            for data in msg['data']:
+                side = BID if data['side'] == 'Buy' else ASK
+                price = data['price']
+                pair = data['symbol']
+                size = data['size']
+                order_id = data['id']
+
+                if price in self.l3_book[pair][side]:
+                    self.l3_book[pair][side][price][order_id] = size
+                else:
+                    self.l3_book[pair][side][price] = {order_id: size}
+                self.order_id[pair][side][order_id] = (price, size)
+                delta[side].append((order_id, price, size))
+        elif msg['action'] == 'update':
+            for data in msg['data']:
+                side = BID if data['side'] == 'Buy' else ASK
+                pair = data['symbol']
+                update_size = data['size']
+                order_id = data['id']
+
+                price, _ = self.order_id[pair][side][order_id]
+
+                self.l3_book[pair][side][price][order_id] = update_size
+                self.order_id[pair][side][order_id] = (price, update_size)
+                delta[side].append((order_id, price, update_size))
+        elif msg['action'] == 'delete':
+            for data in msg['data']:
+                pair = data['symbol']
+                side = BID if data['side'] == 'Buy' else ASK
+                order_id = data['id']
+
+                delete_price, _ = self.order_id[pair][side][order_id]
+                del self.order_id[pair][side][order_id]
+                del self.l3_book[pair][side][delete_price][order_id]
+
+                if len(self.l3_book[pair][side][delete_price]) == 0:
+                    del self.l3_book[pair][side][delete_price]
+
+                delta[side].append((order_id, delete_price, 0))
+
+        else:
+            self.logger.warning(f"{self.get_nane()}: Unexpected L3 Book message {msg}")
+            return
+
+        await self.callbacks[L3_BOOK](feed=self.get_name(),
+                                      symbol=self.get_pair_from_exchange(pair),
+                                      asks=self.l3_book[pair][ASK],
+                                      bids=self.l3_book[pair][BID],
+                                      forced=forced)
+
+    async def subscribe(self):
         chans = []
-        for channel in self.channels if not self.config else self.config:
-            for pair in self.pairs if not self.config else self.config[channel]:
+        for channel in self.channels:
+            for pair in self.pairs:
                 chans.append("{}:{}".format(channel, pair))
 
-        await websocket.send(json.dumps({"op": "subscribe",
-                                         "args": chans}))
+        await self.__send_command("subscribe", chans)
+
+    async def __send_command(self, command, args):
+        await self.websocket.send(json.dumps({"op": command, "args": args or []}))
+
+    def get_auth(self):
+        """Return auth headers. Will use API Keys if present in settings."""
+        if self.api_key:
+            self.logger.info("Authenticating with API Key.")
+            # To auth to the WS using an API key, we generate a signature of a nonce and
+            # the WS API endpoint.
+            expires = generate_nonce()
+            return [
+                "api-expires: " + str(expires),
+                "api-signature: " + generate_signature(self.api_secret, 'GET', '/realtime', expires, ''),
+                "api-key:" + self.api_key
+            ]
+        else:
+            self.logger.info("Not authenticating.")
+            return []
 
     @classmethod
     def get_name(cls):
@@ -231,7 +272,7 @@ class Bitmex(Feed):
 
     @classmethod
     def get_ticker_feed(cls):
-        return UNSUPPORTED
+        return 'quote'
 
     @classmethod
     def get_volume_feed(cls):
@@ -244,6 +285,14 @@ class Bitmex(Feed):
     @classmethod
     def get_funding_feed(cls):
         return 'funding'
+
+    @classmethod
+    def get_margin_feed(cls):
+        return 'margin'
+
+    @classmethod
+    def get_position_feed(cls):
+        return 'position'
 
     @staticmethod
     def timestamp_normalize(ts):
