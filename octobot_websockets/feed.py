@@ -26,7 +26,7 @@ import websockets
 from ccxt.base.exchange import Exchange as ccxtExchange
 
 from octobot_websockets import TRADES, TICKER, L2_BOOK, L3_BOOK, BOOK_DELTA, UNSUPPORTED, FUNDING, CANDLE, POSITION, \
-    ORDERS, PORTFOLIO
+    ORDERS, PORTFOLIO, TimeFrames
 from octobot_websockets.callback import Callback
 
 
@@ -38,6 +38,7 @@ class Feed:
                  callbacks: Dict = None,
                  api_key: str = None,
                  api_secret: str = None,
+                 time_frames: List[TimeFrames] = None,
                  book_interval: int = 1000,
                  timeout: int = 120,
                  timeout_interval: int = 5):
@@ -60,6 +61,7 @@ class Feed:
         self.pairs: List = []
         self.channels: List = []
         self.callbacks: Dict = {}
+        self.time_frames = time_frames if time_frames is not None else []
 
         self.websocket = None
         self.ccxt_client = None

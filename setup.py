@@ -14,8 +14,8 @@
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
 import os
-
 from setuptools import find_packages, setup
+# from Cython.Build import cythonize
 
 from octobot_websockets import PROJECT_NAME, VERSION
 
@@ -28,8 +28,6 @@ def find_package_data(path):
 
 
 PACKAGES = find_packages()
-
-PACKAGES_DATA = [find_package_data("tentacles_manager/tentacle_creator/templates")]
 
 # long description from README file
 with open('README.md', encoding='utf-8') as f:
@@ -52,11 +50,11 @@ setup(
     tests_require=["pytest"],
     test_suite="tests",
     zip_safe=False,
-    data_files=PACKAGES_DATA,
+    data_files=[],
     python_requires=REQUIRES_PYTHON,
+    # ext_modules=cythonize(["**/*.pyx"]),
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Programming Language :: Python :: 3.7',
     ],
 )
-

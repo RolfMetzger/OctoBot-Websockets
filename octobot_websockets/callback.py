@@ -1,5 +1,4 @@
-from asyncio import get_event_loop
-import asyncio
+from octobot_websockets import TimeFrames
 
 
 class Callback:
@@ -15,22 +14,20 @@ class TradeCallback(Callback):
                        feed: str,
                        symbol: str,
                        side: str,
-                       amount: int,
-                       price: int,
+                       amount: float,
+                       price: float,
                        timestamp=None):
-        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, timestamp, side, amount, price),
-                                         get_event_loop())
+        await self.callback(feed, symbol, timestamp, side, amount, price)
 
 
 class TickerCallback(Callback):
     async def __call__(self, *,
                        feed: str,
                        symbol: str,
-                       bid: int,
-                       ask: int,
-                       last: int):
-        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, bid, ask, last),
-                                         get_event_loop())
+                       bid: float,
+                       ask: float,
+                       last: float):
+        await self.callback(feed, symbol, bid, ask, last)
 
 
 class CandleCallback(Callback):
@@ -38,13 +35,13 @@ class CandleCallback(Callback):
                        feed: str,
                        symbol: str,
                        timestamp: int,
-                       close: int,
-                       volume: int,
-                       high: int,
-                       low: int,
-                       opn: int):
-        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, timestamp, close, volume, high, low, opn),
-                                         get_event_loop())
+                       time_frame: TimeFrames,
+                       close: float,
+                       volume: float,
+                       high: float,
+                       low: float,
+                       opn: float):
+        await self.callback(feed, symbol, timestamp, time_frame, close, volume, high, low, opn)
 
 
 class BookCallback(Callback):
@@ -56,9 +53,9 @@ class BookCallback(Callback):
                        feed: str,
                        symbol: str,
                        asks: dict,
-                       bids: dict):
-        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, asks, bids),
-                                         get_event_loop())
+                       bids: dict,
+                       timestamp: int):
+        await self.callback(feed, symbol, asks, bids, timestamp)
 
 
 class OrdersCallback(Callback):
@@ -69,13 +66,12 @@ class OrdersCallback(Callback):
     async def __call__(self, *,
                        feed: str,
                        symbol: str,
-                       price: int,
-                       quantity: int,
+                       price: float,
+                       quantity: float,
                        order_id: int,
                        is_canceled: bool,
                        is_filled: bool):
-        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, price, quantity, order_id, is_canceled, is_filled),
-                                         get_event_loop())
+        await self.callback(feed, symbol, price, quantity, order_id, is_canceled, is_filled)
 
 
 class PositionCallback(Callback):
@@ -86,23 +82,22 @@ class PositionCallback(Callback):
     async def __call__(self, *,
                        feed: str,
                        symbol: str,
-                       entry_price: int,
-                       cost: int,
-                       quantity: int,
-                       pnl_percent: int,
-                       mark_price: int,
-                       liquidation_price: int,
-                       timestamp: str):
-        asyncio.run_coroutine_threadsafe(self.callback(feed,
-                                                       symbol,
-                                                       entry_price,
-                                                       cost,
-                                                       quantity,
-                                                       pnl_percent,
-                                                       mark_price,
-                                                       liquidation_price,
-                                                       timestamp),
-                                         get_event_loop())
+                       entry_price: float,
+                       cost: float,
+                       quantity: float,
+                       pnl_percent: float,
+                       mark_price: float,
+                       liquidation_price: float,
+                       timestamp: int):
+        await self.callback(feed,
+                            symbol,
+                            entry_price,
+                            cost,
+                            quantity,
+                            pnl_percent,
+                            mark_price,
+                            liquidation_price,
+                            timestamp)
 
 
 class UpdatedBookCallback(Callback):
@@ -134,8 +129,7 @@ class UpdatedBookCallback(Callback):
         DEL - price levels should be deleted
         UPD - prices should have the quantity set to size (these are not price deltas)
         """
-        asyncio.run_coroutine_threadsafe(self.callback(feed, symbol, delta),
-                                         get_event_loop())
+        await self.callback(feed, symbol, delta)
 
 
 class FundingCallback(Callback):

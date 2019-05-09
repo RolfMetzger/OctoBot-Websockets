@@ -2,12 +2,15 @@ import calendar
 import json
 from collections import defaultdict
 from datetime import datetime as dt
-from sortedcontainers import SortedDict as sd
+from typing import Dict
 
-from octobot_websockets import TRADES, BUY, SELL, BID, ASK, L2_BOOK, FUNDING, UNSUPPORTED, TICKER, ASKS, BIDS, L3_BOOK, \
-    POSITION, ORDERS
+from octobot_websockets import TRADES, BUY, SELL, BID, ASK, L2_BOOK, FUNDING, UNSUPPORTED, L3_BOOK, \
+    POSITION, ORDERS, TimeFrames
 from octobot_websockets.bitmex.api_key import generate_signature, generate_nonce
 from octobot_websockets.feed import Feed
+from octobot_websockets.util.book import Book
+from octobot_websockets.util.candle_constructor import CandleConstructor
+from octobot_websockets.util.ticker_constructor import TickerConstructor
 
 
 class Bitmex(Feed):
@@ -16,7 +19,8 @@ class Bitmex(Feed):
 
     def __init__(self, pairs=None, channels=None, callbacks=None, **kwargs):
         super().__init__('wss://www.bitmex.com/realtime', pairs=pairs, channels=channels, callbacks=callbacks, **kwargs)
-        self.last_trade = None
+        self.ticker_constructors: Dict[str, TickerConstructor] = {}
+        self.candle_constructors: Dict[str, Dict[TimeFrames, CandleConstructor]] = {}
         self._reset()
 
     def _reset(self):
@@ -24,7 +28,7 @@ class Bitmex(Feed):
         self.order_id = {}
         self.l3_book = {}
         for pair in self.pairs:
-            self.l3_book[pair] = {BID: sd(), ASK: sd()}
+            self.l3_book[pair] = Book()
             self.order_id[pair] = defaultdict(dict)
 
     async def _trade(self, msg):
@@ -51,25 +55,49 @@ class Bitmex(Feed):
                                          amount=data['size'],
                                          price=data['price'],
                                          timestamp=data['timestamp'])
-            self.last_trade = data
+        last_data = msg['data'][-1]
+        symbol = self.get_pair_from_exchange(last_data['symbol'])
+        try:
+            await self.ticker_constructors[symbol].handle_recent_trade(last_data['price'])
+        except KeyError:
+            self.ticker_constructors[symbol] = TickerConstructor(self, symbol)
+            await self.ticker_constructors[symbol].handle_recent_trade(last_data['price'])
+
+        await self.__update_candles(last_data, symbol)
+
+    async def __update_candles(self, last_data, symbol):
+        for time_frame in self.time_frames:
+            try:
+                await self.candle_constructors[symbol][time_frame].handle_recent_trade(last_data['price'],
+                                                                                       last_data['size'])
+            except KeyError:
+                if symbol not in self.candle_constructors:
+                    self.candle_constructors[symbol] = {}
+
+                if time_frame not in self.candle_constructors[symbol]:
+                    self.candle_constructors[symbol][time_frame] = CandleConstructor(self, symbol, time_frame)
+
+                await self.candle_constructors[symbol][time_frame].handle_recent_trade(last_data['price'],
+                                                                                       last_data['size'])
 
     async def _l2_book(self, msg):
+        book = Book()
+        book.handle_book_update(msg['data'][0]['bids'], msg['data'][0]['asks'])
         await self.callbacks[L2_BOOK](feed=self.get_name(),
                                       symbol=self.get_pair_from_exchange(msg['data'][0]['symbol']),
-                                      asks=msg['data'][0]['asks'],
-                                      bids=msg['data'][0]['bids'])
+                                      asks=book.asks,
+                                      bids=book.bids,
+                                      timestamp=book.timestamp)
 
     async def _quote(self, msg):
         """Return a ticker object. Generated from quote and trade."""
+        data = msg['data'][0]
+        symbol = self.get_pair_from_exchange(data['symbol'])
         try:
-            data = msg['data'][0]
-            await self.callbacks[TICKER](feed=self.get_name(),
-                                         symbol=self.get_pair_from_exchange(data['symbol']),
-                                         bid=data['bidPrice'],
-                                         ask=data['askPrice'],
-                                         last=self.last_trade['price'])
-        except TypeError:
-            pass
+            await self.ticker_constructors[symbol].handle_quote(data['bidPrice'], data['askPrice'])
+        except KeyError:
+            self.ticker_constructors[symbol] = TickerConstructor(self, symbol)
+            await self.ticker_constructors[symbol].handle_quote(data['bidPrice'], data['askPrice'])
 
     async def _order(self, msg):
         """
@@ -289,8 +317,8 @@ class Bitmex(Feed):
                 elif table == self.get_execution_feed():
                     await self._order(message)
 
-                elif table == self.get_L3_book_feed():
-                    await self.handle_book_update(message)
+                # elif table == self.get_L3_book_feed():
+                #     await self.handle_book_update(message)
 
                 elif table == self.get_L2_book_feed():
                     await self._l2_book(message)
@@ -300,72 +328,72 @@ class Bitmex(Feed):
             self.logger.error(f"Error when handling message {e}")
             raise e
 
-    async def handle_book_update(self, msg):
-        delta = {BID: [], ASK: []}
-        pair = None
-        # if we reset the book, force a full update
-        forced = False
-        is_partial = msg['action'] == 'partial'
-        if not self.partial_received:
-            # per bitmex documentation messages received before partial
-            # should be discarded
-            if not is_partial:
-                print("return")
-                return
-            else:
-                self.partial_received = True
-            forced = True
-
-        if is_partial or msg['action'] == 'insert':
-            for data in msg['data']:
-                side = BID if data['side'] == 'Buy' else ASK
-                price = data['price']
-                pair = data['symbol']
-                size = data['size']
-                order_id = data['id']
-
-                if price in self.l3_book[pair][side]:
-                    self.l3_book[pair][side][price][order_id] = size
-                else:
-                    self.l3_book[pair][side][price] = {order_id: size}
-                self.order_id[pair][side][order_id] = (price, size)
-                delta[side].append((order_id, price, size))
-        elif msg['action'] == 'update':
-            for data in msg['data']:
-                side = BID if data['side'] == 'Buy' else ASK
-                pair = data['symbol']
-                update_size = data['size']
-                order_id = data['id']
-
-                price, _ = self.order_id[pair][side][order_id]
-
-                self.l3_book[pair][side][price][order_id] = update_size
-                self.order_id[pair][side][order_id] = (price, update_size)
-                delta[side].append((order_id, price, update_size))
-        elif msg['action'] == 'delete':
-            for data in msg['data']:
-                pair = data['symbol']
-                side = BID if data['side'] == 'Buy' else ASK
-                order_id = data['id']
-
-                delete_price, _ = self.order_id[pair][side][order_id]
-                del self.order_id[pair][side][order_id]
-                del self.l3_book[pair][side][delete_price][order_id]
-
-                if len(self.l3_book[pair][side][delete_price]) == 0:
-                    del self.l3_book[pair][side][delete_price]
-
-                delta[side].append((order_id, delete_price, 0))
-
-        else:
-            self.logger.warning(f"{self.get_nane()}: Unexpected L3 Book message {msg}")
-            return
-
-        await self.callbacks[L3_BOOK](feed=self.get_name(),
-                                      symbol=self.get_pair_from_exchange(pair),
-                                      asks=self.l3_book[pair][ASK],
-                                      bids=self.l3_book[pair][BID],
-                                      forced=forced)
+    # async def handle_book_update(self, msg):
+    #     delta = {BID: [], ASK: []}
+    #     pair = None
+    #     # if we reset the book, force a full update
+    #     forced = False
+    #     is_partial = msg['action'] == 'partial'
+    #     if not self.partial_received:
+    #         # per bitmex documentation messages received before partial
+    #         # should be discarded
+    #         if not is_partial:
+    #             print("return")
+    #             return
+    #         else:
+    #             self.partial_received = True
+    #         forced = True
+    #
+    #     if is_partial or msg['action'] == 'insert':
+    #         for data in msg['data']:
+    #             side = BID if data['side'] == 'Buy' else ASK
+    #             price = data['price']
+    #             pair = data['symbol']
+    #             size = data['size']
+    #             order_id = data['id']
+    #
+    #             if price in self.l3_book[pair][side]:
+    #                 self.l3_book[pair][side][price][order_id] = size
+    #             else:
+    #                 self.l3_book[pair][side][price] = {order_id: size}
+    #             self.order_id[pair][side][order_id] = (price, size)
+    #             delta[side].append((order_id, price, size))
+    #     elif msg['action'] == 'update':
+    #         for data in msg['data']:
+    #             side = BID if data['side'] == 'Buy' else ASK
+    #             pair = data['symbol']
+    #             update_size = data['size']
+    #             order_id = data['id']
+    #
+    #             price, _ = self.order_id[pair][side][order_id]
+    #
+    #             self.l3_book[pair][side][price][order_id] = update_size
+    #             self.order_id[pair][side][order_id] = (price, update_size)
+    #             delta[side].append((order_id, price, update_size))
+    #     elif msg['action'] == 'delete':
+    #         for data in msg['data']:
+    #             pair = data['symbol']
+    #             side = BID if data['side'] == 'Buy' else ASK
+    #             order_id = data['id']
+    #
+    #             delete_price, _ = self.order_id[pair][side][order_id]
+    #             del self.order_id[pair][side][order_id]
+    #             del self.l3_book[pair][side][delete_price][order_id]
+    #
+    #             if len(self.l3_book[pair][side][delete_price]) == 0:
+    #                 del self.l3_book[pair][side][delete_price]
+    #
+    #             delta[side].append((order_id, delete_price, 0))
+    #
+    #     else:
+    #         self.logger.warning(f"{self.get_nane()}: Unexpected L3 Book message {msg}")
+    #         return
+    #
+    #     await self.callbacks[L3_BOOK](feed=self.get_name(),
+    #                                   symbol=self.get_pair_from_exchange(pair),
+    #                                   asks=self.l3_book[pair][ASK],
+    #                                   bids=self.l3_book[pair][BID],
+    #                                   forced=forced)
 
     async def subscribe(self):
         chans = []
@@ -404,7 +432,7 @@ class Bitmex(Feed):
 
     @classmethod
     def get_L3_book_feed(cls):
-        return 'orderBookL2'
+        return UNSUPPORTED  #  'orderBookL2'
 
     @classmethod
     def get_trades_feed(cls):
@@ -416,7 +444,7 @@ class Bitmex(Feed):
 
     @classmethod
     def get_candle_feed(cls):
-        return UNSUPPORTED
+        return 'candle'
 
     @classmethod
     def get_funding_feed(cls):
