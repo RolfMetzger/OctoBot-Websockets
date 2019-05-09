@@ -6,6 +6,6 @@
 
 OctoBot websocket library. 
 
-Forked from https://github.com/bmoscon/cryptofeed.
+Inspired by https://github.com/bmoscon/cryptofeed.
 
 On development.
