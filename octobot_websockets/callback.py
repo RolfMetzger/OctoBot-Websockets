@@ -16,7 +16,7 @@ class TradeCallback(Callback):
                        side: str,
                        amount: float,
                        price: float,
-                       timestamp=None):
+                       timestamp: int):
         await self.callback(feed, symbol, timestamp, side, amount, price)
 
 
@@ -26,8 +26,9 @@ class TickerCallback(Callback):
                        symbol: str,
                        bid: float,
                        ask: float,
-                       last: float):
-        await self.callback(feed, symbol, bid, ask, last)
+                       last: float,
+                       timestamp: int):
+        await self.callback(feed, symbol, bid, ask, last, timestamp)
 
 
 class CandleCallback(Callback):

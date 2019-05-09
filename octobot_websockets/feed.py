@@ -41,10 +41,16 @@ class Feed:
                  time_frames: List[TimeFrames] = None,
                  book_interval: int = 1000,
                  timeout: int = 120,
-                 timeout_interval: int = 5):
+                 timeout_interval: int = 5,
+                 create_loop: bool = True):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.DEBUG)
-        self.loop = asyncio.new_event_loop()
+
+        self.create_loop: bool = create_loop
+        if create_loop:
+            self.loop = asyncio.new_event_loop()
+        else:
+            self.loop = asyncio.get_event_loop()
 
         self.api_key: str = api_key
         self.api_secret: str = api_secret
@@ -95,7 +101,10 @@ class Feed:
                     self.do_deltas = True
 
     def start(self):
-        self._websocket_task = self.loop.run_until_complete(self.__connect())
+        if self.create_loop:
+            self._websocket_task = self.loop.run_until_complete(self.__connect())
+        else:
+            self._websocket_task = self.loop.create_task(self.__connect())
 
     async def __watch(self):
         if self.last_msg:

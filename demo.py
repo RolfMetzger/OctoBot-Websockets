@@ -3,22 +3,22 @@ from octobot_websockets.bitmex.bitmex import Bitmex
 from octobot_websockets.callback import TradeCallback, TickerCallback, BookCallback, CandleCallback
 
 
-async def ticker(feed, symbol, bid, ask, last):
-    print(f'[TICKER] Feed: {feed} Pair: {symbol} Bid: {bid} Ask: {ask} Last : {last}')
+async def ticker(feed, symbol, bid, ask, last, timestamp):
+    print(f'[{timestamp}][TICKER] Feed: {feed} Pair: {symbol} Bid: {bid} Ask: {ask} Last : {last}')
 
 
 async def trade(feed, symbol, timestamp, side, amount, price):
     print(
-        f"[TRADE] Timestamp: {timestamp} Feed: {feed} Pair: {symbol} Side: {side} Amount: {amount} Price: {price}")
+        f"[{timestamp}][TRADE] Feed: {feed} Pair: {symbol} Side: {side} Amount: {amount} Price: {price}")
 
 
 async def book(feed, symbol, asks, bids, timestamp):
-    print(f'[ORDER BOOK] Feed: {feed} Pair: {symbol} Book Bids are {bids}')
-    print(f'[ORDER BOOK] Feed: {feed} Pair: {symbol} Book Asks are {asks}')
+    print(f'[{timestamp}][ORDER BOOK] Feed: {feed} Pair: {symbol} Book Bids are {bids}')
+    print(f'[{timestamp}][ORDER BOOK] Feed: {feed} Pair: {symbol} Book Asks are {asks}')
 
 
 async def candle(feed, symbol, timestamp, time_frame, close, volume, high, low, opn):
-    print(f'[CANDLE] Feed: {feed} Pair: {symbol} Close: {close} Volume: {volume} High: {high} Low: {low} Open: {opn}')
+    print(f'[{timestamp}][CANDLE] Feed: {feed} TimeFrame: {time_frame} Pair: {symbol} Close: {close} Volume: {volume} High: {high} Low: {low} Open: {opn}')
 
 
 async def funding(**kwargs):

@@ -13,8 +13,10 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
+from time import time
 
 cdef class Ticker:
+    cdef public timestamp
     cdef public int ready
     cdef public float bid_price
     cdef public float ask_price
@@ -25,22 +27,26 @@ cdef class Ticker:
         self.ask_price = 0
         self.last_price = 0
         self.bid_price = 0
+        self.timestamp = 0
 
     cpdef int handle_quote(self, bid_price: float, ask_price: float):
         cdef int should_refresh = False
 
         if self.bid_price != bid_price:
             self.bid_price = bid_price
+            self.timestamp = time()
             should_refresh = True
 
         if self.ask_price != ask_price:
             self.ask_price = ask_price
+            self.timestamp = time()
             should_refresh = True
 
         return should_refresh
 
     cpdef int handle_recent_trade(self, last_price: float):
         if self.last_price != last_price:
+            self.timestamp = time()
             self.last_price = last_price
             return True
         return False

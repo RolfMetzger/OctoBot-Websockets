@@ -42,4 +42,5 @@ cdef class TickerConstructor:
                                               symbol=self.symbol,
                                               bid=self.ticker.bid_price,
                                               ask=self.ticker.ask_price,
-                                              last=self.ticker.last_price)
+                                              last=self.ticker.last_price,
+                                              timestamp=self.ticker.timestamp)

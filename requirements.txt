@@ -1,5 +1,5 @@
 cython
-sortedcontainers
+pystan
 ccxt
 requests
 websockets
