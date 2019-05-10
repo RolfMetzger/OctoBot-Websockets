@@ -1,6 +1,4 @@
 cython
-pystan
 ccxt
 requests
 websockets
-python-binance

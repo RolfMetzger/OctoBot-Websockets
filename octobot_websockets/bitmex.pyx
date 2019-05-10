@@ -1,29 +1,37 @@
 import calendar
+import hashlib
+import hmac
 import json
+import time
+import urllib
 from collections import defaultdict
 from datetime import datetime as dt
-from typing import Dict
 
-from octobot_websockets import TRADES, BUY, SELL, BID, ASK, L2_BOOK, FUNDING, UNSUPPORTED, L3_BOOK, \
-    POSITION, ORDERS, TimeFrames
-from octobot_websockets.bitmex.api_key import generate_signature, generate_nonce
-from octobot_websockets.feed import Feed
-from octobot_websockets.util.book import Book
-from octobot_websockets.util.candle_constructor import CandleConstructor
-from octobot_websockets.util.ticker_constructor import TickerConstructor
+from octobot_websockets import TRADES, BUY, SELL, L2_BOOK, FUNDING, UNSUPPORTED, POSITION, ORDERS
+from octobot_websockets.book import Book
+from octobot_websockets.candle_constructor import CandleConstructor
+from feed cimport Feed
+from octobot_websockets.ticker_constructor import TickerConstructor
 
-
-class Bitmex(Feed):
+cdef class Bitmex(Feed):
     api = 'https://www.bitmex.com/api/v1'
     MAX_TABLE_LEN = 200
 
+    cdef dict ticker_constructors
+    cdef dict candle_constructors
+
+    cdef int partial_received
+
+    cdef dict order_id # TODO remove
+    cdef dict l3_book # TODO remove
+
     def __init__(self, pairs=None, channels=None, callbacks=None, **kwargs):
         super().__init__('wss://www.bitmex.com/realtime', pairs=pairs, channels=channels, callbacks=callbacks, **kwargs)
-        self.ticker_constructors: Dict[str, TickerConstructor] = {}
-        self.candle_constructors: Dict[str, Dict[TimeFrames, CandleConstructor]] = {}
+        self.ticker_constructors = {}
+        self.candle_constructors = {}
         self._reset()
 
-    def _reset(self):
+    cdef _reset(self):
         self.partial_received = False
         self.order_id = {}
         self.l3_book = {}
@@ -31,7 +39,7 @@ class Bitmex(Feed):
             self.l3_book[pair] = Book()
             self.order_id[pair] = defaultdict(dict)
 
-    async def _trade(self, msg):
+    async def _trade(self, dict msg):
         """
         trade msg example
 
@@ -55,8 +63,8 @@ class Bitmex(Feed):
                                          amount=data['size'],
                                          price=data['price'],
                                          timestamp=data['timestamp'])
-        last_data = msg['data'][-1]
-        symbol = self.get_pair_from_exchange(last_data['symbol'])
+        cdef dict last_data = msg['data'][-1]
+        cdef str symbol = self.get_pair_from_exchange(last_data['symbol'])
         try:
             await self.ticker_constructors[symbol].handle_recent_trade(last_data['price'])
         except KeyError:
@@ -80,8 +88,8 @@ class Bitmex(Feed):
                 await self.candle_constructors[symbol][time_frame].handle_recent_trade(last_data['price'],
                                                                                        last_data['size'])
 
-    async def _l2_book(self, msg):
-        book = Book()
+    async def _l2_book(self, dict msg):
+        cdef object book = Book()
         book.handle_book_update(msg['data'][0]['bids'], msg['data'][0]['asks'])
         await self.callbacks[L2_BOOK](feed=self.get_name(),
                                       symbol=self.get_pair_from_exchange(msg['data'][0]['symbol']),
@@ -89,17 +97,17 @@ class Bitmex(Feed):
                                       bids=book.bids,
                                       timestamp=book.timestamp)
 
-    async def _quote(self, msg):
+    async def _quote(self, dict msg):
         """Return a ticker object. Generated from quote and trade."""
-        data = msg['data'][0]
-        symbol = self.get_pair_from_exchange(data['symbol'])
+        cdef dict data = msg['data'][0]
+        cdef str symbol = self.get_pair_from_exchange(data['symbol'])
         try:
             await self.ticker_constructors[symbol].handle_quote(data['bidPrice'], data['askPrice'])
         except KeyError:
             self.ticker_constructors[symbol] = TickerConstructor(self, symbol)
             await self.ticker_constructors[symbol].handle_quote(data['bidPrice'], data['askPrice'])
 
-    async def _order(self, msg):
+    async def _order(self, dict msg):
         """
         {
            "table":"execution",
@@ -157,8 +165,8 @@ class Bitmex(Feed):
            ]
         }
         """
-        is_canceled = 'ordStatus' in msg['data'] and msg['data']['ordStatus'] == 'Canceled'
-        is_filled = 'ordStatus' in msg['data'] and msg['data']['ordStatus'] == 'Filled'
+        cdef int is_canceled = 'ordStatus' in msg['data'] and msg['data']['ordStatus'] == 'Canceled'
+        cdef int is_filled = 'ordStatus' in msg['data'] and msg['data']['ordStatus'] == 'Filled'
         await self.callbacks[ORDERS](feed=self.get_name(),
                                      symbol=self.get_pair_from_exchange(msg['data']['symbol']),
                                      price=msg['data']['avgEntryPrice'],
@@ -167,7 +175,7 @@ class Bitmex(Feed):
                                      is_canceled=is_canceled,
                                      is_filled=is_filled)
 
-    async def _position(self, msg):
+    async def _position(self, dict msg):
         """
         {
            "table":"position",
@@ -238,7 +246,7 @@ class Bitmex(Feed):
                                        liquidation_price=msg['data']['liquidationPrice'],
                                        timestamp=msg['data']['timestamp'])
 
-    async def _funding(self, msg):
+    async def _funding(self, dict msg):
         """
         {'table': 'funding',
          'action': 'partial',
@@ -275,12 +283,12 @@ class Bitmex(Feed):
                                           rate=data['fundingRate'],
                                           rate_daily=data['fundingRateDaily'])
 
-    async def on_message(self, message):
+    async def on_message(self, str json_message):
         """Handler for parsing WS messages."""
-        message = json.loads(message)
+        cdef dict message = json.loads(json_message)
 
-        table = message['table'] if 'table' in message else None
-        action = message['action'] if 'action' in message else None
+        cdef str table = message['table'] if 'table' in message else None
+        cdef str action = message['action'] if 'action' in message else None
 
         try:
             if 'info' in message:
@@ -396,7 +404,7 @@ class Bitmex(Feed):
     #                                   forced=forced)
 
     async def subscribe(self):
-        chans = []
+        cdef list chans = []
         for channel in self.channels:
             for pair in self.pairs:
                 chans.append("{}:{}".format(channel, pair))
@@ -406,7 +414,7 @@ class Bitmex(Feed):
     async def __send_command(self, command, args):
         await self.websocket.send(json.dumps({"op": command, "args": args or []}))
 
-    def get_auth(self):
+    cdef list get_auth(self):
         """Return auth headers. Will use API Keys if present in settings."""
         if self.api_key:
             self.logger.info("Authenticating with API Key.")
@@ -473,3 +481,32 @@ class Bitmex(Feed):
     @staticmethod
     def timestamp_normalize(ts):
         return calendar.timegm(dt.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fZ").utctimetuple())
+
+# From https://github.com/BitMEX/api-connectors/blob/master/official-ws/python/util/api_key.py
+cdef int generate_nonce():
+    return int(round(time.time() + 3600))
+
+# Generates an API signature.
+# A signature is HMAC_SHA256(secret, verb + path + nonce + data), hex encoded.
+# Verb must be uppercased, url is relative, nonce must be an increasing 64-bit integer
+# and the data, if present, must be JSON without whitespace between keys.
+#
+# For example, in psuedocode (and in real code below):
+#
+# verb=POST
+# url=/api/v1/order
+# nonce=1416993995705
+# data={"symbol":"XBTZ14","quantity":1,"price":395.01}
+# signature = HEX(HMAC_SHA256(secret, 'POST/api/v1/order1416993995705{"symbol":"XBTZ14","quantity":1,"price":395.01}'))
+cdef str generate_signature(secret, verb, url, nonce, data):
+    """Generate a request signature compatible with BitMEX."""
+    # Parse the url so we can remove the base and extract just the path.
+    cdef object parsedURL = urllib.parse.urlparse(url)
+    cdef str path = parsedURL.path
+    if parsedURL.query:
+        path += '?' + parsedURL.query
+
+    # print "Computing HMAC: %s" % verb + path + str(nonce) + data
+    cdef str message = (verb + path + str(nonce) + data).encode('utf-8')
+
+    return hmac.new(secret.encode('utf-8'), message, digestmod=hashlib.sha256).hexdigest()

@@ -14,7 +14,7 @@
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
 # from distutils.extension import Extension
-from setuptools import setup
+from setuptools import setup, Extension
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 from setuptools import find_packages
@@ -48,7 +48,7 @@ setup(
     data_files=[],
     setup_requires=['Cython'],
     python_requires=REQUIRES_PYTHON,
-    ext_modules=cythonize(["**/*.pyx"]),
+    ext_modules=cythonize(["octobot_websockets/*.pyx"]),
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Programming Language :: Python :: 3.7',

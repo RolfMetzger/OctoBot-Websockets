@@ -16,7 +16,7 @@
 from octobot_websockets import TICKER
 
 from octobot_websockets.feed import Feed
-from octobot_websockets.util.ticker import Ticker
+from octobot_websockets.ticker import Ticker
 
 cdef class TickerConstructor:
     cdef object feed

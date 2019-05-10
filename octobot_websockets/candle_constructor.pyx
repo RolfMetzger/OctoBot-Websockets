@@ -16,7 +16,7 @@
 from octobot_websockets.feed import Feed
 
 from octobot_websockets import CANDLE, TimeFrames
-from octobot_websockets.util.candle import Candle
+from octobot_websockets.candle import Candle
 
 
 cdef class CandleConstructor:

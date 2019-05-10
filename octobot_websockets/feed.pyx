@@ -16,26 +16,26 @@
 
 import asyncio
 import logging
-from abc import abstractmethod
-from asyncio import Task, CancelledError
+from asyncio import CancelledError
 from datetime import datetime, timedelta
-from typing import List, Dict
+from typing import List
 
 import ccxt
 import websockets
 from ccxt.base.exchange import Exchange as ccxtExchange
 
 from octobot_websockets import TRADES, TICKER, L2_BOOK, L3_BOOK, BOOK_DELTA, UNSUPPORTED, FUNDING, CANDLE, POSITION, \
-    ORDERS, PORTFOLIO, TimeFrames
+    ORDERS, PORTFOLIO, TimeFrames, HOURS_TO_SECONDS
 from octobot_websockets.callback import Callback
 
+cdef class Feed:
+    MAX_DELAY = HOURS_TO_SECONDS
 
-class Feed:
     def __init__(self,
                  address: str,
-                 pairs: List = None,
-                 channels: List = None,
-                 callbacks: Dict = None,
+                 pairs: list = None,
+                 channels: list = None,
+                 callbacks: dict = None,
                  api_key: str = None,
                  api_secret: str = None,
                  time_frames: List[TimeFrames] = None,
@@ -46,39 +46,39 @@ class Feed:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.DEBUG)
 
-        self.create_loop: bool = create_loop
+        self.create_loop = create_loop
         if create_loop:
             self.loop = asyncio.new_event_loop()
         else:
             self.loop = asyncio.get_event_loop()
 
-        self.api_key: str = api_key
-        self.api_secret: str = api_secret
-        self.address: str = address
+        self.api_key = api_key
+        self.api_secret = api_secret
+        self.address = address
 
-        self.timeout: int = timeout
-        self.timeout_interval: int = timeout_interval
-        self.book_update_interval: int = book_interval
-        self.updates: int = 0
+        self.timeout = timeout
+        self.timeout_interval = timeout_interval
+        self.book_update_interval = book_interval
+        self.updates = 0
 
-        self.is_connected: bool = False
-        self.do_deltas: bool = False
+        self.is_connected = False
+        self.do_deltas = False
+        self.should_stop = False
 
-        self.pairs: List = []
-        self.channels: List = []
-        self.callbacks: Dict = {}
+        self.pairs = []
+        self.channels = []
+        self.callbacks = {}
         self.time_frames = time_frames if time_frames is not None else []
 
         self.websocket = None
         self.ccxt_client = None
-
-        self._watch_task: Task = None
-        self._websocket_task: Task = None
-        self.last_msg: datetime = datetime.utcnow()
+        self._watch_task = None
+        self._websocket_task = None
+        self.last_msg = datetime.utcnow()
 
         self.__initialize(pairs, channels, callbacks)
 
-    def __initialize(self, pairs, channels, callbacks):
+    cdef __initialize(self, pairs, channels, callbacks):
         self.ccxt_client = getattr(ccxt, self.get_name())()
         self.ccxt_client.load_markets()
 
@@ -100,7 +100,7 @@ class Feed:
                 if cb_type == BOOK_DELTA:
                     self.do_deltas = True
 
-    def start(self):
+    cpdef start(self):
         if self.create_loop:
             self._websocket_task = self.loop.run_until_complete(self.__connect())
         else:
@@ -119,18 +119,20 @@ class Feed:
 
     async def __connect(self):
         """ Connect to websocket feeds """
-        retries = 0
-        delay = 1
-        self.watch_task = None
-        while retries <= retries:
+        cdef int delay = 1
+        self._watch_task = None
+        while not self.should_stop:
+            # manage max delay
+            if delay >= self.MAX_DELAY:
+                delay = self.MAX_DELAY
+
             try:
                 async with websockets.connect(self.address) as websocket:
                     self.websocket = websocket
                     await self.on_open()
                     self._watch_task = asyncio.create_task(self.__watch())
                     # connection was successful, reset retry count and delay
-                    self.retries = 0
-                    self.delay = 1
+                    delay = 1
                     await self.subscribe()
                     await self._handler()
             except (websockets.ConnectionClosed,
@@ -139,12 +141,10 @@ class Feed:
                     CancelledError) as e:
                 self.logger.warning(f"{self.get_name()} encountered connection issue ({e}) - reconnecting...")
                 await asyncio.sleep(delay)
-                retries += 1
                 delay *= 2
             except Exception as e:
                 self.logger.error(f"{self.get_name()} encountered an exception ({e}), reconnecting...")
                 await asyncio.sleep(delay)
-                retries += 1
                 delay *= 2
 
     async def _handler(self):
@@ -165,90 +165,79 @@ class Feed:
     async def on_open(self):
         self.logger.info("Connected")
 
-    def on_close(self):
+    cdef on_close(self):
         self.logger.info('Websocket Closed')
 
-    def stop(self):
+    cpdef stop(self):
         self.websocket.close()
 
-    def close(self):
+    cpdef close(self):
         self.stop()
         self._watch_task.cancel()
         self._websocket_task.cancel()
 
-    def get_auth(self):
+    cdef list get_auth(self):
         return []  # to be overwritten
 
-    @abstractmethod
     async def on_message(self, message):
         raise NotImplemented("on_message is not implemented")
 
-    @abstractmethod
     async def subscribe(self):
         raise NotImplemented("subscribe is not implemented")
 
     @classmethod
-    def get_name(cls):
+    def get_name(cls) -> str:
         raise NotImplemented("get_name is not implemented")
 
     @classmethod
-    def get_ccxt(cls):
+    def get_ccxt(cls) -> object:
         getattr(ccxt, cls.get_name())
 
     @classmethod
-    @abstractmethod
-    def get_L2_book_feed(cls):
+    def get_L2_book_feed(cls) -> str:
         raise NotImplemented("get_L2_book_feed is not implemented")
 
     @classmethod
-    @abstractmethod
-    def get_L3_book_feed(cls):
+    def get_L3_book_feed(cls) -> str:
         raise NotImplemented("get_L3_book_feed is not implemented")
 
     @classmethod
-    @abstractmethod
-    def get_trades_feed(cls):
+    def get_trades_feed(cls) -> str:
         raise NotImplemented("get_trades_feed is not implemented")
 
     @classmethod
-    @abstractmethod
-    def get_ticker_feed(cls):
+    def get_ticker_feed(cls) -> str:
         raise NotImplemented("get_ticker_feed is not implemented")
 
     @classmethod
-    @abstractmethod
-    def get_candle_feed(cls):
+    def get_candle_feed(cls) -> str:
         raise NotImplemented("get_candle_feed is not implemented")
 
     @classmethod
-    @abstractmethod
-    def get_funding_feed(cls):
+    def get_funding_feed(cls) -> str:
         raise NotImplemented("get_funding_feed is not implemented")
 
     @classmethod
-    @abstractmethod
-    def get_portfolio_feed(cls):
+    def get_portfolio_feed(cls) -> str:
         raise NotImplemented("get_portfolio_feed is not implemented")
 
     @classmethod
-    @abstractmethod
-    def get_orders_feed(cls):
+    def get_orders_feed(cls) -> str:
         raise NotImplemented("get_orders_feed is not implemented")
 
     @classmethod
-    @abstractmethod
-    def get_position_feed(cls):
+    def get_position_feed(cls) -> str:
         raise NotImplemented("get_position_feed is not implemented")
 
-    def get_pairs(self) -> List:
+    cdef list get_pairs(self):
         return self.ccxt_client.symbols
 
     @staticmethod
-    def timestamp_normalize(ts):
+    cdef int timestamp_normalize(ts):
         return ts
 
     @classmethod
-    def get_feeds(cls) -> Dict:
+    def get_feeds(cls) -> dict:
         return {
             FUNDING: cls.get_funding_feed(),
             L2_BOOK: cls.get_L2_book_feed(),
@@ -261,10 +250,10 @@ class Feed:
             PORTFOLIO: cls.get_portfolio_feed()
         }
 
-    def get_pair_from_exchange(self, pair) -> str:
+    cdef str get_pair_from_exchange(self, pair):
         return self.ccxt_client.find_market(pair)["symbol"]
 
-    def get_exchange_pair(self, pair) -> str:
+    cdef str get_exchange_pair(self, pair):
         if pair in self.ccxt_client.symbols:
             try:
                 return self.ccxt_client.find_market(pair)["id"]
@@ -273,13 +262,12 @@ class Feed:
         else:
             raise ValueError(f'{pair} is not supported on {self.get_name()}')
 
-    def feed_to_exchange(self, feed):
+    cdef str feed_to_exchange(self, feed):
         ret = self.get_feeds()[feed]
         if ret == UNSUPPORTED:
             self.logger.error("{} is not supported on {}".format(feed, self.get_name()))
             raise ValueError(f"{feed} is not supported on {self.get_name()}")
         return ret
 
-    @staticmethod
-    def safe_float(dictionary, key, default_value=None):
+    cdef float safe_float(self, dictionary, key, default_value):
         return ccxtExchange.safe_float(dictionary, key, default_value)

@@ -1,5 +1,5 @@
 from octobot_websockets import TRADES, TICKER, L2_BOOK, CANDLE, TimeFrames
-from octobot_websockets.bitmex.bitmex import Bitmex
+from octobot_websockets.bitmex import Bitmex
 from octobot_websockets.callback import TradeCallback, TickerCallback, BookCallback, CandleCallback
 
 
