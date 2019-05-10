@@ -13,21 +13,15 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
-import os
-from setuptools import find_packages, setup
-# from Cython.Build import cythonize
+# from distutils.extension import Extension
+from setuptools import setup
+from Cython.Build import cythonize
+from Cython.Distutils import build_ext
+from setuptools import find_packages
 
 from octobot_websockets import PROJECT_NAME, VERSION
 
-
-def find_package_data(path):
-    return (path, [os.path.join(dirpath, filename)
-                   for dirpath, dirnames, filenames in os.walk(path)
-                   for filename in
-                   [file for file in filenames if not file.endswith(".py") and not file.endswith(".pyc")]])
-
-
-PACKAGES = find_packages()
+PACKAGES = find_packages(exclude=["tests"])
 
 # long description from README file
 with open('README.md', encoding='utf-8') as f:
@@ -47,12 +41,14 @@ setup(
     packages=PACKAGES,
     long_description=DESCRIPTION,
     install_requires=REQUIRED,
+    cmdclass={'build_ext': build_ext},
     tests_require=["pytest"],
     test_suite="tests",
     zip_safe=False,
     data_files=[],
+    setup_requires=['Cython'],
     python_requires=REQUIRES_PYTHON,
-    # ext_modules=cythonize(["**/*.pyx"]),
+    ext_modules=cythonize(["**/*.pyx"]),
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Programming Language :: Python :: 3.7',
