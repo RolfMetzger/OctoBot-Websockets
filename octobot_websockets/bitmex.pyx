@@ -7,10 +7,10 @@ import urllib
 from collections import defaultdict
 from datetime import datetime as dt
 
-from octobot_websockets import TRADES, BUY, SELL, L2_BOOK, FUNDING, UNSUPPORTED, POSITION, ORDERS
+from octobot_websockets.constants import TRADES, BUY, SELL, L2_BOOK, FUNDING, UNSUPPORTED, POSITION, ORDERS
 from octobot_websockets.book import Book
 from octobot_websockets.candle_constructor import CandleConstructor
-from feed cimport Feed
+from octobot_websockets.feed cimport Feed
 from octobot_websockets.ticker_constructor import TickerConstructor
 
 cdef class Bitmex(Feed):
@@ -478,8 +478,7 @@ cdef class Bitmex(Feed):
     def get_execution_feed(cls):
         return 'execution'
 
-    @staticmethod
-    def timestamp_normalize(ts):
+    cdef int timestamp_normalize(self, ts):
         return calendar.timegm(dt.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fZ").utctimetuple())
 
 # From https://github.com/BitMEX/api-connectors/blob/master/official-ws/python/util/api_key.py

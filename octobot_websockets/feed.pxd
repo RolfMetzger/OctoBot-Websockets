@@ -52,7 +52,7 @@ cdef class Feed:
     cpdef close(self)
     cdef list get_auth(self)
     cdef list get_pairs(self)
-    cdef int timestamp_normalize(ts)
+    cdef int timestamp_normalize(self, ts)
     cdef str get_pair_from_exchange(self, pair)
     cdef str get_exchange_pair(self, pair)
     cdef str feed_to_exchange(self, feed)

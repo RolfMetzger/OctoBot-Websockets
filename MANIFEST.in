@@ -1,0 +1,4 @@
+recursive-include octobot_websockets *.pyx
+recursive-include octobot_websockets *.pyd
+recursive-include octobot_websockets *.py
+recursive-include tests *.py

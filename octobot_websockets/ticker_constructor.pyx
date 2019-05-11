@@ -13,7 +13,7 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
-from octobot_websockets import TICKER
+from octobot_websockets.constants import TICKER
 
 from octobot_websockets.feed import Feed
 from octobot_websockets.ticker import Ticker

@@ -15,7 +15,7 @@
 #  License along with this library.
 from octobot_websockets.feed import Feed
 
-from octobot_websockets import CANDLE, TimeFrames
+from octobot_websockets.constants import CANDLE, TimeFrames
 from octobot_websockets.candle import Candle
 
 

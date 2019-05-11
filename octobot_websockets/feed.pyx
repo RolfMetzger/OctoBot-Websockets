@@ -24,7 +24,7 @@ import ccxt
 import websockets
 from ccxt.base.exchange import Exchange as ccxtExchange
 
-from octobot_websockets import TRADES, TICKER, L2_BOOK, L3_BOOK, BOOK_DELTA, UNSUPPORTED, FUNDING, CANDLE, POSITION, \
+from octobot_websockets.constants import TRADES, TICKER, L2_BOOK, L3_BOOK, BOOK_DELTA, UNSUPPORTED, FUNDING, CANDLE, POSITION, \
     ORDERS, PORTFOLIO, TimeFrames, HOURS_TO_SECONDS
 from octobot_websockets.callback import Callback
 
@@ -232,8 +232,7 @@ cdef class Feed:
     cdef list get_pairs(self):
         return self.ccxt_client.symbols
 
-    @staticmethod
-    cdef int timestamp_normalize(ts):
+    cdef int timestamp_normalize(self, ts):
         return ts
 
     @classmethod

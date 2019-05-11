@@ -14,12 +14,22 @@
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
 # from distutils.extension import Extension
-from setuptools import setup, Extension
-from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 from setuptools import find_packages
+from setuptools import setup, Extension
 
-from octobot_websockets import PROJECT_NAME, VERSION
+from octobot_websockets.constants import PROJECT_NAME, VERSION
+
+ext_modules = [
+    Extension("octobot_websockets.bitmex", ["octobot_websockets/bitmex.pyx"]),
+    Extension("octobot_websockets.book", ["octobot_websockets/book.pyx"]),
+    Extension("octobot_websockets.callback", ["octobot_websockets/callback.pyx"]),
+    Extension("octobot_websockets.candle", ["octobot_websockets/candle.pyx"]),
+    Extension("octobot_websockets.candle_constructor", ["octobot_websockets/candle_constructor.pyx"]),
+    Extension("octobot_websockets.feed", ["octobot_websockets/feed.pyx"]),
+    Extension("octobot_websockets.ticker", ["octobot_websockets/ticker.pyx"]),
+    Extension("octobot_websockets.ticker_constructor", ["octobot_websockets/ticker_constructor.pyx"]),
+]
 
 PACKAGES = find_packages(exclude=["tests"])
 
@@ -48,7 +58,7 @@ setup(
     data_files=[],
     setup_requires=['Cython'],
     python_requires=REQUIRES_PYTHON,
-    ext_modules=cythonize(["octobot_websockets/*.pyx"]),
+    ext_modules=ext_modules,
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Programming Language :: Python :: 3.7',

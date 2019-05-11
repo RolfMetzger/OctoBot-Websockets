@@ -1,4 +1,4 @@
-from octobot_websockets import TimeFrames
+from octobot_websockets.constants import TimeFrames
 
 
 cdef class Callback(object):
