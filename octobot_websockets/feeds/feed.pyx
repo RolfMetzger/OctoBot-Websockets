@@ -24,8 +24,9 @@ import ccxt
 import websockets
 from ccxt.base.exchange import Exchange as ccxtExchange
 
-from octobot_websockets.constants import TRADES, TICKER, L2_BOOK, L3_BOOK, BOOK_DELTA, UNSUPPORTED, FUNDING, CANDLE, POSITION, \
-    ORDERS, PORTFOLIO, TimeFrames, HOURS_TO_SECONDS
+from octobot_websockets.constants import TRADES, TICKER, L2_BOOK, L3_BOOK, BOOK_DELTA, UNSUPPORTED, FUNDING, CANDLE, \
+    POSITION, \
+    ORDERS, PORTFOLIO, TimeFrames, HOURS_TO_SECONDS, KLINE
 from octobot_websockets.callback import Callback
 
 cdef class Feed:
@@ -91,6 +92,7 @@ cdef class Feed:
                           L2_BOOK: Callback(None),
                           L3_BOOK: Callback(None),
                           CANDLE: Callback(None),
+                          KLINE: Callback(None),
                           PORTFOLIO: Callback(None),
                           ORDERS: Callback(None),
                           POSITION: Callback(None)}
@@ -215,6 +217,10 @@ cdef class Feed:
         raise NotImplemented("get_candle_feed is not implemented")
 
     @classmethod
+    def get_kline_feed(cls) -> str:
+        raise NotImplemented("get_kline_feed is not implemented")
+
+    @classmethod
     def get_funding_feed(cls) -> str:
         raise NotImplemented("get_funding_feed is not implemented")
 
@@ -244,6 +250,7 @@ cdef class Feed:
             L3_BOOK: cls.get_L3_book_feed(),
             TRADES: cls.get_trades_feed(),
             CANDLE: cls.get_candle_feed(),
+            KLINE: cls.get_kline_feed(),
             TICKER: cls.get_ticker_feed(),
             POSITION: cls.get_position_feed(),
             ORDERS: cls.get_orders_feed(),

@@ -15,7 +15,8 @@
 #  License along with this library.
 import asyncio
 
-from octobot_websockets.constants import CANDLE, TimeFrames, TimeFramesMinutes, MSECONDS_TO_SECONDS
+from octobot_websockets.constants import CANDLE, TimeFrames, TimeFramesMinutes, KLINE, \
+    MINUTE_TO_SECONDS
 
 from octobot_websockets.data.candle cimport Candle
 from octobot_websockets.feeds.feed cimport Feed
@@ -37,18 +38,29 @@ cdef class CandleConstructor:
 
         self.candle.handle_candle_update(price, vol)
 
+        await self.feed.callbacks[KLINE](feed=self.feed.get_name(),
+                                         symbol=self.symbol,
+                                         timestamp=self.candle.close_timestamp,
+                                         time_frame=self.time_frame,
+                                         close=self.candle.close,
+                                         volume=self.candle.vol,
+                                         high=self.candle.high,
+                                         low=self.candle.low,
+                                         opn=self.candle.opn)
+
     async def release_candle(self):
         while not self.should_stop:
-            await TimeFramesMinutes[self.time_frame] * MSECONDS_TO_SECONDS - self.time_frame_delta
+            await asyncio.sleep(TimeFramesMinutes[self.time_frame] * MINUTE_TO_SECONDS - self.time_frame_delta)
             self.time_frame_delta = 0
-            self.candle.on_close()
-            await self.feed.callbacks[CANDLE](feed=self.feed.get_name(),
-                                                  symbol=self.symbol,
-                                                  timestamp=self.candle.close_timestamp,
-                                                  time_frame=self.time_frame,
-                                                  close=self.candle.close,
-                                                  volume=self.candle.vol,
-                                                  high=self.candle.high,
-                                                  low=self.candle.low,
-                                                  opn=self.candle.opn)
-            self.candle = None
+            if self.candle is not None:
+                self.candle.on_close()
+                await self.feed.callbacks[CANDLE](feed=self.feed.get_name(),
+                                                      symbol=self.symbol,
+                                                      timestamp=self.candle.close_timestamp,
+                                                      time_frame=self.time_frame,
+                                                      close=self.candle.close,
+                                                      volume=self.candle.vol,
+                                                      high=self.candle.high,
+                                                      low=self.candle.low,
+                                                      opn=self.candle.opn)
+                self.candle = None

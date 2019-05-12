@@ -455,6 +455,10 @@ cdef class Bitmex(Feed):
         return 'candle'
 
     @classmethod
+    def get_kline_feed(cls):
+        return 'kline'
+
+    @classmethod
     def get_funding_feed(cls):
         return 'funding'
 

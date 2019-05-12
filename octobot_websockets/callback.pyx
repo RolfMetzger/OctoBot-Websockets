@@ -47,6 +47,19 @@ cdef class CandleCallback(Callback):
         await self.callback(feed, symbol, timestamp, time_frame, close, volume, high, low, opn)
 
 
+cdef class KlineCallback(Callback):
+    async def __call__(self, *,
+                       feed: str,
+                       symbol: str,
+                       timestamp: int,
+                       time_frame: TimeFrames,
+                       close: float,
+                       volume: float,
+                       high: float,
+                       low: float,
+                       opn: float):
+        await self.callback(feed, symbol, timestamp, time_frame, close, volume, high, low, opn)
+
 cdef class BookCallback(Callback):
     """
     For full L2/L3 book updates
