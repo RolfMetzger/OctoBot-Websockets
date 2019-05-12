@@ -13,18 +13,13 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
-from octobot_websockets.feed import Feed
-
 from octobot_websockets.constants import CANDLE, TimeFrames
-from octobot_websockets.candle import Candle
+
+from octobot_websockets.data.candle cimport Candle
+from octobot_websockets.feeds.feed cimport Feed
 
 
 cdef class CandleConstructor:
-    cdef object feed
-    cdef str symbol
-    cdef object time_frame
-    cdef object candle
-
     def __init__(self, feed: Feed, symbol: str, time_frame: TimeFrames):
         self.feed = feed
         self.symbol = symbol

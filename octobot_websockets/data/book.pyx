@@ -13,3 +13,16 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
+import operator
+from time import time
+
+cdef class Book:
+    def __init__(self):
+        self.asks = []
+        self.bids = []
+        self.timestamp = 0
+
+    cpdef handle_book_update(self, list bids, list asks):
+        self.bids = sorted(bids, key=operator.itemgetter(0), reverse=True)
+        self.asks = sorted(asks, key=operator.itemgetter(0))
+        self.timestamp = time()

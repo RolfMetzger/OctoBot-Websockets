@@ -21,14 +21,16 @@ from setuptools import setup, Extension
 from octobot_websockets.constants import PROJECT_NAME, VERSION
 
 ext_modules = [
-    Extension("octobot_websockets.bitmex", ["octobot_websockets/bitmex.pyx"]),
-    Extension("octobot_websockets.book", ["octobot_websockets/book.pyx"]),
     Extension("octobot_websockets.callback", ["octobot_websockets/callback.pyx"]),
-    Extension("octobot_websockets.candle", ["octobot_websockets/candle.pyx"]),
-    Extension("octobot_websockets.candle_constructor", ["octobot_websockets/candle_constructor.pyx"]),
-    Extension("octobot_websockets.feed", ["octobot_websockets/feed.pyx"]),
-    Extension("octobot_websockets.ticker", ["octobot_websockets/ticker.pyx"]),
-    Extension("octobot_websockets.ticker_constructor", ["octobot_websockets/ticker_constructor.pyx"]),
+    Extension("octobot_websockets.data.book", ["octobot_websockets/data/book.pyx"]),
+    Extension("octobot_websockets.data.candle", ["octobot_websockets/data/candle.pyx"]),
+    Extension("octobot_websockets.data.ticker", ["octobot_websockets/data/ticker.pyx"]),
+    Extension("octobot_websockets.constructors.candle_constructor",
+              ["octobot_websockets/constructors/candle_constructor.pyx"]),
+    Extension("octobot_websockets.constructors.ticker_constructor",
+              ["octobot_websockets/constructors/ticker_constructor.pyx"]),
+    Extension("octobot_websockets.feeds.feed", ["octobot_websockets/feeds/feed.pyx"]),
+    Extension("octobot_websockets.feeds.bitmex", ["octobot_websockets/feeds/bitmex.pyx"]),
 ]
 
 PACKAGES = find_packages(exclude=["tests"])

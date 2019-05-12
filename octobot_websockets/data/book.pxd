@@ -13,3 +13,10 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
+
+cdef class Book:
+    cdef public timestamp
+    cdef public list bids
+    cdef public list asks
+
+    cpdef handle_book_update(self, list bids, list asks)

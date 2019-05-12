@@ -13,3 +13,8 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
+
+cdef class TickerConstructor:
+    cdef object feed
+    cdef str symbol
+    cdef object ticker

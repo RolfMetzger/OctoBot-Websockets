@@ -15,14 +15,10 @@
 #  License along with this library.
 from octobot_websockets.constants import TICKER
 
-from octobot_websockets.feed import Feed
-from octobot_websockets.ticker import Ticker
+from octobot_websockets.data.ticker cimport Ticker
+from octobot_websockets.feeds.feed cimport Feed
 
 cdef class TickerConstructor:
-    cdef object feed
-    cdef str symbol
-    cdef object ticker
-
     def __init__(self, feed: Feed, symbol: str):
         self.feed = feed
         self.ticker = Ticker()

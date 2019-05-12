@@ -13,20 +13,14 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
-import operator
-from time import time
 
-cdef class Book:
+cdef class Ticker:
     cdef public timestamp
-    cdef public list bids
-    cdef public list asks
+    cdef public int ready
+    cdef public float bid_price
+    cdef public float ask_price
+    cdef public float last_price
 
-    def __init__(self):
-        self.asks = []
-        self.bids = []
-        self.timestamp = 0
-
-    cpdef handle_book_update(self, list bids, list asks):
-        self.bids = sorted(bids, key=operator.itemgetter(0), reverse=True)
-        self.asks = sorted(asks, key=operator.itemgetter(0))
-        self.timestamp = time()
+    cpdef int handle_quote(self, float bid_price, float ask_price)
+    cpdef int handle_recent_trade(self, float last_price)
+    cpdef int is_ready(self)

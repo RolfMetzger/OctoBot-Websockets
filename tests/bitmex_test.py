@@ -2,8 +2,8 @@ import asyncio
 
 import pytest
 
-from octobot_websockets import L2_BOOK, TRADES
-from octobot_websockets.bitmex import Bitmex
+from octobot_websockets.constants import L2_BOOK, TRADES
+from octobot_websockets.feeds.bitmex import Bitmex
 from octobot_websockets.callback import TradeCallback, BookCallback
 
 pytestmark = pytest.mark.asyncio

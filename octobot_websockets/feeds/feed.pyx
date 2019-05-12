@@ -49,6 +49,7 @@ cdef class Feed:
         self.create_loop = create_loop
         if create_loop:
             self.loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.loop)
         else:
             self.loop = asyncio.get_event_loop()
 

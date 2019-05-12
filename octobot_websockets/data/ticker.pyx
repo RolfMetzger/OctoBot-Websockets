@@ -16,12 +16,6 @@
 from time import time
 
 cdef class Ticker:
-    cdef public timestamp
-    cdef public int ready
-    cdef public float bid_price
-    cdef public float ask_price
-    cdef public float last_price
-
     def __init__(self):
         self.ready = False
         self.ask_price = 0
@@ -29,7 +23,7 @@ cdef class Ticker:
         self.bid_price = 0
         self.timestamp = 0
 
-    cpdef int handle_quote(self, bid_price: float, ask_price: float):
+    cpdef int handle_quote(self, float bid_price, float ask_price):
         cdef int should_refresh = False
 
         if self.bid_price != bid_price:
@@ -44,7 +38,7 @@ cdef class Ticker:
 
         return should_refresh
 
-    cpdef int handle_recent_trade(self, last_price: float):
+    cpdef int handle_recent_trade(self, float last_price):
         if self.last_price != last_price:
             self.timestamp = time()
             self.last_price = last_price

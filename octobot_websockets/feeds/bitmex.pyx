@@ -8,10 +8,10 @@ from collections import defaultdict
 from datetime import datetime as dt
 
 from octobot_websockets.constants import TRADES, BUY, SELL, L2_BOOK, FUNDING, UNSUPPORTED, POSITION, ORDERS
-from octobot_websockets.book import Book
-from octobot_websockets.candle_constructor import CandleConstructor
-from octobot_websockets.feed cimport Feed
-from octobot_websockets.ticker_constructor import TickerConstructor
+from octobot_websockets.data.book cimport Book
+from octobot_websockets.feeds.feed cimport Feed
+from octobot_websockets.constructors.candle_constructor cimport CandleConstructor
+from octobot_websockets.constructors.ticker_constructor cimport TickerConstructor
 
 cdef class Bitmex(Feed):
     api = 'https://www.bitmex.com/api/v1'
@@ -89,7 +89,7 @@ cdef class Bitmex(Feed):
                                                                                        last_data['size'])
 
     async def _l2_book(self, dict msg):
-        cdef object book = Book()
+        cdef Book book = Book()
         book.handle_book_update(msg['data'][0]['bids'], msg['data'][0]['asks'])
         await self.callbacks[L2_BOOK](feed=self.get_name(),
                                       symbol=self.get_pair_from_exchange(msg['data'][0]['symbol']),
