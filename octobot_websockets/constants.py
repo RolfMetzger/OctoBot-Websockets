@@ -16,7 +16,7 @@
 from enum import Enum
 
 PROJECT_NAME = "OctoBot-Websockets"
-VERSION = "0.0.6"  # major.minor.revision
+VERSION = "0.0.7"  # major.minor.revision
 
 L2_BOOK = 'l2_book'
 L3_BOOK = 'l3_book'

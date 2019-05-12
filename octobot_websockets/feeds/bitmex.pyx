@@ -420,10 +420,10 @@ cdef class Bitmex(Feed):
             self.logger.info("Authenticating with API Key.")
             # To auth to the WS using an API key, we generate a signature of a nonce and
             # the WS API endpoint.
-            expires = generate_nonce()
+            expires = self.generate_nonce()
             return [
                 "api-expires: " + str(expires),
-                "api-signature: " + generate_signature(self.api_secret, 'GET', '/realtime', expires, ''),
+                "api-signature: " + self.generate_signature(self.api_secret, 'GET', '/realtime', expires, ''),
                 "api-key:" + self.api_key
             ]
         else:
@@ -481,31 +481,31 @@ cdef class Bitmex(Feed):
     cdef int timestamp_normalize(self, ts):
         return calendar.timegm(dt.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fZ").utctimetuple())
 
-# From https://github.com/BitMEX/api-connectors/blob/master/official-ws/python/util/api_key.py
-cdef int generate_nonce():
-    return int(round(time.time() + 3600))
+    # From https://github.com/BitMEX/api-connectors/blob/master/official-ws/python/util/api_key.py
+    cdef int generate_nonce(self):
+        return int(round(time.time() + 3600))
 
-# Generates an API signature.
-# A signature is HMAC_SHA256(secret, verb + path + nonce + data), hex encoded.
-# Verb must be uppercased, url is relative, nonce must be an increasing 64-bit integer
-# and the data, if present, must be JSON without whitespace between keys.
-#
-# For example, in psuedocode (and in real code below):
-#
-# verb=POST
-# url=/api/v1/order
-# nonce=1416993995705
-# data={"symbol":"XBTZ14","quantity":1,"price":395.01}
-# signature = HEX(HMAC_SHA256(secret, 'POST/api/v1/order1416993995705{"symbol":"XBTZ14","quantity":1,"price":395.01}'))
-cdef str generate_signature(secret, verb, url, nonce, data):
-    """Generate a request signature compatible with BitMEX."""
-    # Parse the url so we can remove the base and extract just the path.
-    cdef object parsedURL = urllib.parse.urlparse(url)
-    cdef str path = parsedURL.path
-    if parsedURL.query:
-        path += '?' + parsedURL.query
+    # Generates an API signature.
+    # A signature is HMAC_SHA256(secret, verb + path + nonce + data), hex encoded.
+    # Verb must be uppercased, url is relative, nonce must be an increasing 64-bit integer
+    # and the data, if present, must be JSON without whitespace between keys.
+    #
+    # For example, in psuedocode (and in real code below):
+    #
+    # verb=POST
+    # url=/api/v1/order
+    # nonce=1416993995705
+    # data={"symbol":"XBTZ14","quantity":1,"price":395.01}
+    # signature = HEX(HMAC_SHA256(secret, 'POST/api/v1/order1416993995705{"symbol":"XBTZ14","quantity":1,"price":395.01}'))
+    cdef str generate_signature(self, secret, verb, url, nonce, data):
+        """Generate a request signature compatible with BitMEX."""
+        # Parse the url so we can remove the base and extract just the path.
+        cdef object parsedURL = urllib.parse.urlparse(url)
+        cdef str path = parsedURL.path
+        if parsedURL.query:
+            path += '?' + parsedURL.query
 
-    # print "Computing HMAC: %s" % verb + path + str(nonce) + data
-    cdef str message = (verb + path + str(nonce) + data).encode('utf-8')
+        # print "Computing HMAC: %s" % verb + path + str(nonce) + data
+        cdef str message = (verb + path + str(nonce) + data).encode('utf-8')
 
-    return hmac.new(secret.encode('utf-8'), message, digestmod=hashlib.sha256).hexdigest()
+        return hmac.new(secret.encode('utf-8'), message, digestmod=hashlib.sha256).hexdigest()

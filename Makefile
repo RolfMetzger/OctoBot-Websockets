@@ -7,7 +7,7 @@ clean:
 		   ./octobot_websockets/*.c \
 		   ./*.egg-info
 
-install:
+install: build
 	python setup.py install
 
 test: install

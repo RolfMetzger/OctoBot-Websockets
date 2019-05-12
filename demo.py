@@ -1,6 +1,6 @@
-from octobot_websockets import TRADES, TICKER, L2_BOOK, CANDLE, TimeFrames
-from octobot_websockets.feeds import Bitmex
-from octobot_websockets import TradeCallback, TickerCallback, BookCallback, CandleCallback
+from octobot_websockets.constants import TRADES, TICKER, L2_BOOK, CANDLE, TimeFrames
+from octobot_websockets.feeds.bitmex import Bitmex
+from octobot_websockets.callback import TradeCallback, TickerCallback, BookCallback, CandleCallback
 
 
 async def ticker(feed, symbol, bid, ask, last, timestamp):

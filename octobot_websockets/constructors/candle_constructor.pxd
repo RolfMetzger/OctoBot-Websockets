@@ -16,7 +16,10 @@
 
 
 cdef class CandleConstructor:
-    cdef object feed
+    cdef int time_frame_delta
+    cdef int should_stop
     cdef str symbol
+    cdef object feed
     cdef object time_frame
     cdef object candle
+    cdef object candle_task

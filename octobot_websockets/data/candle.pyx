@@ -16,15 +16,13 @@
 from time import time
 
 cdef class Candle:
-    def __init__(self, float price, int time_frame_size):
-        self.is_closed = False
+    def __init__(self, float price):
         self.opn = price
         self.high = price
         self.low = price
         self.close = price
         self.vol = 0
         self.start_timestamp = time()
-        self.time_frame_size = time_frame_size
         self.close_timestamp = 0
 
 
@@ -37,8 +35,6 @@ cdef class Candle:
     
         self.close = price
         self.vol += vol
-    
-        if time() - self.start_timestamp >= self.time_frame_size:
-            self.is_closed = True
-            self.close_timestamp = time()
 
+    cpdef on_close(self):
+        self.close_timestamp = time()
