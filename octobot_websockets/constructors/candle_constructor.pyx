@@ -14,6 +14,7 @@
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
 import asyncio
+from time import time
 
 from octobot_websockets.constants import CANDLE, TimeFrames, TimeFramesMinutes, KLINE, \
     MINUTE_TO_SECONDS
@@ -23,13 +24,20 @@ from octobot_websockets.feeds.feed cimport Feed
 
 
 cdef class CandleConstructor:
-    def __init__(self, feed: Feed, symbol: str, time_frame: TimeFrames, int time_frame_delta = 0):
+    def __init__(self, feed: Feed, symbol: str, time_frame: TimeFrames, list started_candle):
         self.should_stop = False
         self.feed = feed
         self.symbol = symbol
         self.candle = None
         self.time_frame = time_frame
-        self.time_frame_delta = time_frame_delta
+
+        # recover started candle
+        self.candle = Candle(0)
+        self.candle.start_timestamp, \
+        self.candle.opn, self.candle.high, self.candle.low, self.candle.close, self.candle.vol = started_candle
+
+        self.time_frame_seconds = TimeFramesMinutes[self.time_frame] * MINUTE_TO_SECONDS
+        self.time_frame_delta = self.time_frame_seconds - (time() - started_candle[0])
         self.candle_task = asyncio.create_task(self.release_candle())
 
     async def handle_recent_trade(self, price: float, vol: float):
@@ -49,9 +57,8 @@ cdef class CandleConstructor:
                                          opn=self.candle.opn)
 
     async def release_candle(self):
+        await asyncio.sleep(self.time_frame_delta)
         while not self.should_stop:
-            await asyncio.sleep(TimeFramesMinutes[self.time_frame] * MINUTE_TO_SECONDS - self.time_frame_delta)
-            self.time_frame_delta = 0
             if self.candle is not None:
                 self.candle.on_close()
                 await self.feed.callbacks[CANDLE](feed=self.feed.get_name(),
@@ -64,3 +71,4 @@ cdef class CandleConstructor:
                                                       low=self.candle.low,
                                                       opn=self.candle.opn)
                 self.candle = None
+            await asyncio.sleep(self.time_frame_seconds)

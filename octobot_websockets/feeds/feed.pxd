@@ -41,19 +41,21 @@ cdef class Feed:
     cdef object logger
     cdef object websocket
     cdef object ccxt_client
+    cdef object async_ccxt_client
     cdef object _watch_task
     cdef object _websocket_task
     cdef object last_msg
 
-    cdef __initialize(self, pairs, channels, callbacks)
+    cdef __initialize(self, list pairs, list channels, dict callbacks)
     cpdef start(self)
     cdef on_close(self)
     cpdef stop(self)
     cpdef close(self)
     cdef list get_auth(self)
     cdef list get_pairs(self)
-    cdef int timestamp_normalize(self, ts)
-    cdef str get_pair_from_exchange(self, pair)
-    cdef str get_exchange_pair(self, pair)
+    cdef double fix_timestamp(self, double ts)
+    cdef double timestamp_normalize(self, double ts)
+    cdef str get_pair_from_exchange(self, str pair)
+    cdef str get_exchange_pair(self, str pair)
     cdef str feed_to_exchange(self, feed)
-    cdef float safe_float(self, dictionary, key, default_value)
+    cdef float safe_float(self, dict dictionary, key, default_value)

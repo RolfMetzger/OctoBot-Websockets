@@ -15,8 +15,8 @@
 #  License along with this library.
 
 cdef class Candle:
-    cdef double start_timestamp
-    cdef int time_frame_size
+    cdef double time_frame_size
+    cdef public double start_timestamp
     cdef public double close_timestamp
     cdef public float high
     cdef public float low

@@ -1,3 +1,4 @@
+import asyncio
 import calendar
 import hashlib
 import hmac
@@ -7,7 +8,10 @@ import urllib
 from collections import defaultdict
 from datetime import datetime as dt
 
-from octobot_websockets.constants import TRADES, BUY, SELL, L2_BOOK, FUNDING, UNSUPPORTED, POSITION, ORDERS
+from ccxt.async_support import bitmex
+
+from octobot_websockets.constants import TRADES, BUY, SELL, L2_BOOK, FUNDING, UNSUPPORTED, POSITION, ORDERS, TimeFrames, \
+    TimeFramesMinutes, MSECONDS_TO_MINUTE, MSECONDS_TO_SECONDS
 from octobot_websockets.data.book cimport Book
 from octobot_websockets.feeds.feed cimport Feed
 from octobot_websockets.constructors.candle_constructor cimport CandleConstructor
@@ -16,6 +20,7 @@ from octobot_websockets.constructors.ticker_constructor cimport TickerConstructo
 cdef class Bitmex(Feed):
     api = 'https://www.bitmex.com/api/v1'
     MAX_TABLE_LEN = 200
+    CANDLE_RETRY_TIME = 30
 
     cdef dict ticker_constructors
     cdef dict candle_constructors
@@ -83,10 +88,29 @@ cdef class Bitmex(Feed):
                     self.candle_constructors[symbol] = {}
 
                 if time_frame not in self.candle_constructors[symbol]:
-                    self.candle_constructors[symbol][time_frame] = CandleConstructor(self, symbol, time_frame)
+                    started_candle = await self.get_last_candle_from_ccxt(symbol, time_frame)
+                    print(f"start = {started_candle}")
+                    self.candle_constructors[symbol][time_frame] = CandleConstructor(self, symbol,
+                                                                                     time_frame,
+                                                                                     started_candle)
+
 
                 await self.candle_constructors[symbol][time_frame].handle_recent_trade(last_data['price'],
                                                                                        last_data['size'])
+
+    async def get_last_candle_from_ccxt(self, symbol: str, time_frame: TimeFrames) -> list:
+        cdef double since
+        cdef list candle
+
+        while True:
+            since = self.async_ccxt_client.milliseconds () - MSECONDS_TO_MINUTE * TimeFramesMinutes[time_frame]
+            candle = (await self.async_ccxt_client.fetch_ohlcv(symbol, time_frame.value, since, 1))
+            if candle:
+                candle[0][0] = self.fix_timestamp(candle[0][0])
+                return candle[0]
+            else:
+                self.logger.warning("Failed to synchronize candles, retrying...")
+                await asyncio.sleep(self.CANDLE_RETRY_TIME)
 
     async def _l2_book(self, dict msg):
         cdef Book book = Book()
@@ -435,6 +459,10 @@ cdef class Bitmex(Feed):
         return 'bitmex'
 
     @classmethod
+    def get_ccxt_async_client(cls):
+        return bitmex
+
+    @classmethod
     def get_L2_book_feed(cls):
         return 'orderBook10'
 
@@ -482,7 +510,10 @@ cdef class Bitmex(Feed):
     def get_execution_feed(cls):
         return 'execution'
 
-    cdef int timestamp_normalize(self, ts):
+    cdef double fix_timestamp(self, double ts):
+        return ts / MSECONDS_TO_SECONDS
+
+    cdef double timestamp_normalize(self, double ts):
         return calendar.timegm(dt.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fZ").utctimetuple())
 
     # From https://github.com/BitMEX/api-connectors/blob/master/official-ws/python/util/api_key.py

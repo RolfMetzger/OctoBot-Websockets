@@ -4,20 +4,17 @@ from octobot_websockets.callback import TradeCallback, TickerCallback, BookCallb
 
 
 async def ticker(feed, symbol, bid, ask, last, timestamp):
-    # print(f'[{timestamp}][TICKER] Feed: {feed} Pair: {symbol} Bid: {bid} Ask: {ask} Last : {last}')
-    pass
+    print(f'[{timestamp}][TICKER] Feed: {feed} Pair: {symbol} Bid: {bid} Ask: {ask} Last : {last}')
 
 
 async def trade(feed, symbol, timestamp, side, amount, price):
-    # print(
-    #     f"[{timestamp}][TRADE] Feed: {feed} Pair: {symbol} Side: {side} Amount: {amount} Price: {price}")
-    pass
+    print(
+        f"[{timestamp}][TRADE] Feed: {feed} Pair: {symbol} Side: {side} Amount: {amount} Price: {price}")
 
 
 async def book(feed, symbol, asks, bids, timestamp):
-    # print(f'[{timestamp}][ORDER BOOK] Feed: {feed} Pair: {symbol} Book Bids are {bids}')
-    # print(f'[{timestamp}][ORDER BOOK] Feed: {feed} Pair: {symbol} Book Asks are {asks}')
-    pass
+    print(f'[{timestamp}][ORDER BOOK] Feed: {feed} Pair: {symbol} Book Bids are {bids}')
+    print(f'[{timestamp}][ORDER BOOK] Feed: {feed} Pair: {symbol} Book Asks are {asks}')
 
 
 async def candle(feed, symbol, timestamp, time_frame, close, volume, high, low, opn):
@@ -37,7 +34,7 @@ async def funding(**kwargs):
 
 
 def main():
-    b = Bitmex(pairs=['BTC/USD', 'ETH/USD'], channels=[TRADES, TICKER, L2_BOOK, CANDLE], callbacks={
+    b = Bitmex(pairs=["BTC/USD", "ETH/USD"], channels=[TRADES, TICKER, L2_BOOK, CANDLE], callbacks={
         TRADES: TradeCallback(trade),
         TICKER: TickerCallback(ticker),
         L2_BOOK: BookCallback(book),

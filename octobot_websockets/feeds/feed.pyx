@@ -80,7 +80,8 @@ cdef class Feed:
 
         self.__initialize(pairs, channels, callbacks)
 
-    cdef __initialize(self, pairs, channels, callbacks):
+    cdef __initialize(self, list pairs, list channels, dict callbacks):
+        self.async_ccxt_client = self.get_ccxt_async_client()()
         self.ccxt_client = getattr(ccxt, self.get_name())()
         self.ccxt_client.load_markets()
 
@@ -197,6 +198,10 @@ cdef class Feed:
         getattr(ccxt, cls.get_name())
 
     @classmethod
+    def get_ccxt_async_client(cls):
+        raise NotImplemented("get_ccxt_async_client is not implemented")
+
+    @classmethod
     def get_L2_book_feed(cls) -> str:
         raise NotImplemented("get_L2_book_feed is not implemented")
 
@@ -239,7 +244,10 @@ cdef class Feed:
     cdef list get_pairs(self):
         return self.ccxt_client.symbols
 
-    cdef int timestamp_normalize(self, ts):
+    cdef double fix_timestamp(self, double ts):
+        return ts
+
+    cdef double timestamp_normalize(self, double ts):
         return ts
 
     @classmethod
@@ -257,10 +265,10 @@ cdef class Feed:
             PORTFOLIO: cls.get_portfolio_feed()
         }
 
-    cdef str get_pair_from_exchange(self, pair):
+    cdef str get_pair_from_exchange(self, str pair):
         return self.ccxt_client.find_market(pair)["symbol"]
 
-    cdef str get_exchange_pair(self, pair):
+    cdef str get_exchange_pair(self, str pair):
         if pair in self.ccxt_client.symbols:
             try:
                 return self.ccxt_client.find_market(pair)["id"]
@@ -276,5 +284,5 @@ cdef class Feed:
             raise ValueError(f"{feed} is not supported on {self.get_name()}")
         return ret
 
-    cdef float safe_float(self, dictionary, key, default_value):
+    cdef float safe_float(self, dict dictionary, key, default_value):
         return ccxtExchange.safe_float(dictionary, key, default_value)
