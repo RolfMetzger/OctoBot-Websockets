@@ -1,3 +1,4 @@
+#cython: language_level=2
 #  Drakkar-Software OctoBot-Websockets
 #  Copyright (c) Drakkar-Software, All rights reserved.
 #

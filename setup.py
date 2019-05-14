@@ -14,6 +14,7 @@
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
 # from distutils.extension import Extension
+from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 from setuptools import find_packages
 from setuptools import setup, Extension
@@ -60,7 +61,7 @@ setup(
     data_files=[],
     setup_requires=['Cython'],
     python_requires=REQUIRES_PYTHON,
-    ext_modules=ext_modules,
+    ext_modules=cythonize(ext_modules),
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Programming Language :: Python :: 3.7',

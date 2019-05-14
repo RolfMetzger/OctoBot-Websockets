@@ -3,8 +3,8 @@ import asyncio
 import pytest
 
 from octobot_websockets.constants import L2_BOOK, TRADES, TimeFrames, TICKER, CANDLE, KLINE
-from octobot_websockets.feeds.bitmex import Bitmex
 from octobot_websockets.callback import TradeCallback, BookCallback, CandleCallback, TickerCallback, KlineCallback
+from octobot_websockets.feeds.bitmex import Bitmex
 
 pytestmark = pytest.mark.asyncio
 

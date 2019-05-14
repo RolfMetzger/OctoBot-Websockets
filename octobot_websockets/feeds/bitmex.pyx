@@ -1,3 +1,4 @@
+#cython: language_level=2
 import asyncio
 import calendar
 import hashlib

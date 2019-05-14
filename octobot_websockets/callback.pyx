@@ -1,3 +1,4 @@
+#cython: language_level=2
 from octobot_websockets.constants import TimeFrames
 
 
