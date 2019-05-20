@@ -24,6 +24,7 @@ from typing import List
 import ccxt
 import websockets
 from ccxt.base.exchange import Exchange as ccxtExchange
+from octobot_commons.logging.logging_util import get_logger
 
 from octobot_websockets.constants import TRADES, TICKER, L2_BOOK, L3_BOOK, BOOK_DELTA, UNSUPPORTED, FUNDING, CANDLE, \
     POSITION, \
@@ -45,8 +46,7 @@ cdef class Feed:
                  timeout: int = 120,
                  timeout_interval: int = 5,
                  create_loop: bool = True):
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.DEBUG)
+        self.logger = get_logger(self.__class__.__name__)
 
         self.create_loop = create_loop
         if create_loop:

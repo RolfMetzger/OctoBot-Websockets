@@ -17,7 +17,7 @@
 
 cdef class Ticker:
     cdef public timestamp
-    cdef public int ready
+    cdef public bint ready
     cdef public float bid_price
     cdef public float ask_price
     cdef public float last_price

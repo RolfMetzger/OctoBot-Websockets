@@ -25,11 +25,10 @@ cdef class Feed:
     cdef int book_update_interval
     cdef int updates
 
-    # booleans
-    cdef int create_loop
-    cdef int is_connected
-    cdef int do_deltas
-    cdef int should_stop
+    cdef bint create_loop
+    cdef bint is_connected
+    cdef bint do_deltas
+    cdef bint should_stop
 
     cdef list pairs
     cdef list time_frames

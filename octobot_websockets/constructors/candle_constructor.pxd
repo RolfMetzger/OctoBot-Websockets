@@ -19,7 +19,7 @@
 cdef class CandleConstructor:
     cdef double time_frame_delta
     cdef double time_frame_seconds
-    cdef int should_stop
+    cdef bint should_stop
     cdef str symbol
     cdef object feed
     cdef object time_frame

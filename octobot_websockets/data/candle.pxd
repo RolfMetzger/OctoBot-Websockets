@@ -24,7 +24,7 @@ cdef class Candle:
     cdef public float opn
     cdef public float close
     cdef public float vol
-    cdef public int is_closed
+    cdef public bint is_closed
 
     cpdef handle_candle_update(self, float price, float vol)
     cpdef on_close(self)
