@@ -24,7 +24,7 @@ cdef class Ticker:
         self.bid_price = 0
         self.timestamp = 0
 
-    cpdef int handle_quote(self, float bid_price, float ask_price):
+    cdef bint handle_quote(self, float bid_price, float ask_price):
         cdef int should_refresh = False
 
         if self.bid_price != bid_price:
@@ -39,14 +39,14 @@ cdef class Ticker:
 
         return should_refresh
 
-    cpdef int handle_recent_trade(self, float last_price):
+    cdef bint handle_recent_trade(self, float last_price):
         if self.last_price != last_price:
             self.timestamp = time()
             self.last_price = last_price
             return True
         return False
 
-    cpdef int is_ready(self):
+    cdef bint is_ready(self):
         if not self.ready:
             self.ready = self.last_price != 0 and self.bid_price != 0 and self.ask_price != 0
         return self.ready

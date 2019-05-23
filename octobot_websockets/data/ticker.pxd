@@ -22,6 +22,6 @@ cdef class Ticker:
     cdef public float ask_price
     cdef public float last_price
 
-    cpdef int handle_quote(self, float bid_price, float ask_price)
-    cpdef int handle_recent_trade(self, float last_price)
-    cpdef int is_ready(self)
+    cdef bint handle_quote(self, float bid_price, float ask_price)
+    cdef bint handle_recent_trade(self, float last_price)
+    cdef bint is_ready(self)

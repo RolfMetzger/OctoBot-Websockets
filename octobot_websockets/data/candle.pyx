@@ -27,7 +27,7 @@ cdef class Candle:
         self.close_timestamp = 0
 
 
-    cpdef handle_candle_update(self, float price, float vol):
+    cdef handle_candle_update(self, float price, float vol):
         if self.high < price:
             self.high = price
     
@@ -37,5 +37,5 @@ cdef class Candle:
         self.close = price
         self.vol += vol
 
-    cpdef on_close(self):
+    cdef on_close(self):
         self.close_timestamp = time()

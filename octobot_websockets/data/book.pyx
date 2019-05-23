@@ -23,7 +23,7 @@ cdef class Book:
         self.bids = []
         self.timestamp = 0
 
-    cpdef handle_book_update(self, list bids, list asks):
+    cdef handle_book_update(self, list bids, list asks):
         self.bids = sorted(bids, key=operator.itemgetter(0), reverse=True)
         self.asks = sorted(asks, key=operator.itemgetter(0))
         self.timestamp = time()

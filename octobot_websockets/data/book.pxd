@@ -20,4 +20,4 @@ cdef class Book:
     cdef public list bids
     cdef public list asks
 
-    cpdef handle_book_update(self, list bids, list asks)
+    cdef handle_book_update(self, list bids, list asks)

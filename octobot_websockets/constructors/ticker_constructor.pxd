@@ -14,8 +14,10 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
+from octobot_websockets.data.ticker cimport Ticker
+from octobot_websockets.feeds.feed cimport Feed
 
 cdef class TickerConstructor:
-    cdef object feed
+    cdef Feed feed
+    cdef Ticker ticker
     cdef str symbol
-    cdef object ticker

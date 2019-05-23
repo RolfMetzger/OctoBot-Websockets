@@ -1,4 +1,3 @@
-#cython: language_level=2
 #  Drakkar-Software OctoBot-Websockets
 #  Copyright (c) Drakkar-Software, All rights reserved.
 #
@@ -14,17 +13,3 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
-from octobot_websockets.feeds.feed cimport Feed
-from octobot_websockets.data.candle cimport Candle
-
-cdef class CandleConstructor:
-    cdef double time_frame_delta
-    cdef double time_frame_seconds
-    cdef bint should_stop
-    cdef str symbol
-
-    cdef Feed feed
-    cdef Candle candle
-
-    cdef object time_frame
-    cdef object candle_task

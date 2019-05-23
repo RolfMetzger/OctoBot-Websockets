@@ -21,20 +21,25 @@ from setuptools import setup, Extension
 
 from octobot_websockets.constants import PROJECT_NAME, VERSION
 
-ext_modules = [
-    Extension("octobot_websockets.callback", ["octobot_websockets/callback.pyx"]),
-    Extension("octobot_websockets.data.book", ["octobot_websockets/data/book.pyx"]),
-    Extension("octobot_websockets.data.candle", ["octobot_websockets/data/candle.pyx"]),
-    Extension("octobot_websockets.data.ticker", ["octobot_websockets/data/ticker.pyx"]),
-    Extension("octobot_websockets.constructors.candle_constructor",
-              ["octobot_websockets/constructors/candle_constructor.pyx"]),
-    Extension("octobot_websockets.constructors.ticker_constructor",
-              ["octobot_websockets/constructors/ticker_constructor.pyx"]),
-    Extension("octobot_websockets.feeds.feed", ["octobot_websockets/feeds/feed.pyx"]),
-    Extension("octobot_websockets.feeds.bitmex", ["octobot_websockets/feeds/bitmex.pyx"]),
-]
-
 PACKAGES = find_packages(exclude=["tests"])
+
+packages_list = ["octobot_websockets.callback",
+                 "octobot_websockets.data.book",
+                 "octobot_websockets.data.candle",
+                 "octobot_websockets.data.ticker",
+                 "octobot_websockets.constructors.candle_constructor",
+                 "octobot_websockets.constructors.ticker_constructor",
+                 "octobot_websockets.feeds.feed",
+                 "octobot_websockets.feeds.bitmex"]
+
+PACKAGE_DATA = {
+    package: [f"{package.replace('.', '/')}.pxd", f"{package.replace('.', '/')}.pyx"]
+    for package in packages_list
+}
+
+ext_modules = [
+    Extension(package, [f"{package.replace('.', '/')}.pyx"])
+    for package in packages_list]
 
 # long description from README file
 with open('README.md', encoding='utf-8') as f:
@@ -52,6 +57,7 @@ setup(
     author_email='drakkar-software@protonmail.com',
     description='OctoBot project exchange websockets',
     packages=PACKAGES,
+    package_data=PACKAGE_DATA,
     long_description=DESCRIPTION,
     install_requires=REQUIRED,
     cmdclass={'build_ext': build_ext},
