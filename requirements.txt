@@ -1,7 +1,6 @@
-cython
+# Drakkar-Software requirements
+OctoBot-Commons
+
 ccxt
 requests
 websockets
-
-# Drakkar-Software requirements
-OctoBot-Commons
