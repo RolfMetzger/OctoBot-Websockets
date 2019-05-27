@@ -1,4 +1,4 @@
-#cython: language_level=2
+# cython: language_level=3
 #  Drakkar-Software OctoBot-Websockets
 #  Copyright (c) Drakkar-Software, All rights reserved.
 #
@@ -16,7 +16,8 @@
 #  License along with this library.
 from time import time
 
-cdef class Ticker:
+
+class Ticker:
     def __init__(self):
         self.ready = False
         self.ask_price = 0
@@ -24,8 +25,8 @@ cdef class Ticker:
         self.bid_price = 0
         self.timestamp = 0
 
-    cdef bint handle_quote(self, float bid_price, float ask_price):
-        cdef int should_refresh = False
+    def handle_quote(self, bid_price, ask_price):
+        should_refresh:int = False
 
         if self.bid_price != bid_price:
             self.bid_price = bid_price
@@ -39,14 +40,14 @@ cdef class Ticker:
 
         return should_refresh
 
-    cdef bint handle_recent_trade(self, float last_price):
+    def handle_recent_trade(self, last_price):
         if self.last_price != last_price:
             self.timestamp = time()
             self.last_price = last_price
             return True
         return False
 
-    cdef bint is_ready(self):
+    def is_ready(self):
         if not self.ready:
             self.ready = self.last_price != 0 and self.bid_price != 0 and self.ask_price != 0
         return self.ready

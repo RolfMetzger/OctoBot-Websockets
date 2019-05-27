@@ -1,4 +1,4 @@
-#cython: language_level=2
+# cython: language_level=3
 #  Drakkar-Software OctoBot-Websockets
 #  Copyright (c) Drakkar-Software, All rights reserved.
 #
@@ -16,22 +16,23 @@
 #  License along with this library.
 
 import asyncio
-import logging
+from abc import abstractmethod
 from asyncio import CancelledError
 from datetime import datetime, timedelta
 from typing import List
 
 import ccxt
-import websockets
 from ccxt.base.exchange import Exchange as ccxtExchange
+import websockets
 from octobot_commons.logging.logging_util import get_logger
 
-from octobot_websockets.constants import TRADES, TICKER, L2_BOOK, L3_BOOK, BOOK_DELTA, UNSUPPORTED, FUNDING, CANDLE, \
-    POSITION, \
-    ORDERS, PORTFOLIO, TimeFrames, HOURS_TO_SECONDS, KLINE
 from octobot_websockets.callback import Callback
+from octobot_websockets.constants import TRADES, TICKER, L2_BOOK, L3_BOOK, BOOK_DELTA, FUNDING, CANDLE, \
+    POSITION, \
+    ORDERS, PORTFOLIO, TimeFrames, HOURS_TO_SECONDS, KLINE, UNSUPPORTED
 
-cdef class Feed:
+
+class Feed:
     MAX_DELAY = HOURS_TO_SECONDS
 
     def __init__(self,
@@ -81,7 +82,7 @@ cdef class Feed:
 
         self.__initialize(pairs, channels, callbacks)
 
-    cdef __initialize(self, list pairs, list channels, dict callbacks):
+    def __initialize(self, pairs, channels, callbacks):
         self.async_ccxt_client = self.get_ccxt_async_client()()
         self.ccxt_client = getattr(ccxt, self.get_name())()
         self.ccxt_client.load_markets()
@@ -105,7 +106,7 @@ cdef class Feed:
                 if cb_type == BOOK_DELTA:
                     self.do_deltas = True
 
-    cpdef start(self):
+    def start(self):
         if self.create_loop:
             self._websocket_task = self.loop.run_until_complete(self.__connect())
         else:
@@ -124,7 +125,7 @@ cdef class Feed:
 
     async def __connect(self):
         """ Connect to websocket feeds """
-        cdef int delay = 1
+        delay: int = 1
         self._watch_task = None
         while not self.should_stop:
             # manage max delay
@@ -170,23 +171,25 @@ cdef class Feed:
     async def on_open(self):
         self.logger.info("Connected")
 
-    cdef on_close(self):
+    def on_close(self):
         self.logger.info('Websocket Closed')
 
-    cpdef stop(self):
+    def stop(self):
         self.websocket.close()
 
-    cpdef close(self):
+    def close(self):
         self.stop()
         self._watch_task.cancel()
         self._websocket_task.cancel()
 
-    cdef list get_auth(self):
+    def get_auth(self):
         return []  # to be overwritten
 
+    @abstractmethod
     async def on_message(self, message):
         raise NotImplemented("on_message is not implemented")
 
+    @abstractmethod
     async def subscribe(self):
         raise NotImplemented("subscribe is not implemented")
 
@@ -242,13 +245,13 @@ cdef class Feed:
     def get_position_feed(cls) -> str:
         raise NotImplemented("get_position_feed is not implemented")
 
-    cdef list get_pairs(self):
+    def get_pairs(self):
         return self.ccxt_client.symbols
 
-    cdef double fix_timestamp(self, double ts):
+    def fix_timestamp(self, ts):
         return ts
 
-    cdef double timestamp_normalize(self, double ts):
+    def timestamp_normalize(self, ts):
         return ts
 
     @classmethod
@@ -266,10 +269,10 @@ cdef class Feed:
             PORTFOLIO: cls.get_portfolio_feed()
         }
 
-    cdef str get_pair_from_exchange(self, str pair):
+    def get_pair_from_exchange(self, pair):
         return self.ccxt_client.find_market(pair)["symbol"]
 
-    cdef str get_exchange_pair(self, str pair):
+    def get_exchange_pair(self, pair):
         if pair in self.ccxt_client.symbols:
             try:
                 return self.ccxt_client.find_market(pair)["id"]
@@ -278,12 +281,12 @@ cdef class Feed:
         else:
             raise ValueError(f'{pair} is not supported on {self.get_name()}')
 
-    cdef str feed_to_exchange(self, feed):
+    def feed_to_exchange(self, feed):
         ret = self.get_feeds()[feed]
         if ret == UNSUPPORTED:
             self.logger.error("{} is not supported on {}".format(feed, self.get_name()))
             raise ValueError(f"{feed} is not supported on {self.get_name()}")
         return ret
 
-    cdef float safe_float(self, dict dictionary, key, default_value):
+    def safe_float(self, dictionary, key, default_value):
         return ccxtExchange.safe_float(dictionary, key, default_value)

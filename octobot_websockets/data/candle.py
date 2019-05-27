@@ -1,4 +1,4 @@
-#cython: language_level=2
+# cython: language_level=3
 #  Drakkar-Software OctoBot-Websockets
 #  Copyright (c) Drakkar-Software, All rights reserved.
 #
@@ -16,8 +16,9 @@
 #  License along with this library.
 from time import time
 
-cdef class Candle:
-    def __init__(self, float price):
+
+class Candle:
+    def __init__(self, price: float):
         self.opn = price
         self.high = price
         self.low = price
@@ -26,16 +27,15 @@ cdef class Candle:
         self.start_timestamp = time()
         self.close_timestamp = 0
 
-
-    cdef handle_candle_update(self, float price, float vol):
+    def handle_candle_update(self, price, vol):
         if self.high < price:
             self.high = price
-    
+
         if self.low > price:
             self.low = price
-    
+
         self.close = price
         self.vol += vol
 
-    cdef on_close(self):
+    def on_close(self):
         self.close_timestamp = time()

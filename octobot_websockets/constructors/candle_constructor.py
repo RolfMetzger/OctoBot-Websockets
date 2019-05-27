@@ -1,4 +1,4 @@
-#cython: language_level=2
+# cython: language_level=3
 #  Drakkar-Software OctoBot-Websockets
 #  Copyright (c) Drakkar-Software, All rights reserved.
 #
@@ -20,12 +20,12 @@ from time import time
 from octobot_websockets.constants import CANDLE, TimeFrames, TimeFramesMinutes, KLINE, \
     MINUTE_TO_SECONDS
 
-from octobot_websockets.data.candle cimport Candle
-from octobot_websockets.feeds.feed cimport Feed
+from octobot_websockets.data.candle import Candle
+from octobot_websockets.feeds.feed import Feed
 
 
-cdef class CandleConstructor:
-    def __init__(self, feed: Feed, symbol: str, time_frame: TimeFrames, list started_candle):
+class CandleConstructor:
+    def __init__(self, feed: Feed, symbol: str, time_frame: TimeFrames, started_candle: list):
         self.should_stop = False
         self.feed = feed
         self.symbol = symbol
@@ -63,13 +63,13 @@ cdef class CandleConstructor:
             if self.candle is not None:
                 self.candle.on_close()
                 await self.feed.callbacks[CANDLE](feed=self.feed.get_name(),
-                                                      symbol=self.symbol,
-                                                      timestamp=self.candle.close_timestamp,
-                                                      time_frame=self.time_frame,
-                                                      close=self.candle.close,
-                                                      volume=self.candle.vol,
-                                                      high=self.candle.high,
-                                                      low=self.candle.low,
-                                                      opn=self.candle.opn)
+                                                  symbol=self.symbol,
+                                                  timestamp=self.candle.close_timestamp,
+                                                  time_frame=self.time_frame,
+                                                  close=self.candle.close,
+                                                  volume=self.candle.vol,
+                                                  high=self.candle.high,
+                                                  low=self.candle.low,
+                                                  opn=self.candle.opn)
                 self.candle = None
             await asyncio.sleep(self.time_frame_seconds)

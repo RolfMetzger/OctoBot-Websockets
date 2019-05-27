@@ -1,4 +1,4 @@
-#cython: language_level=2
+# cython: language_level=3
 #  Drakkar-Software OctoBot-Websockets
 #  Copyright (c) Drakkar-Software, All rights reserved.
 #
@@ -20,4 +20,4 @@ cdef class Book:
     cdef public list bids
     cdef public list asks
 
-    cdef handle_book_update(self, list bids, list asks)
+    cpdef handle_book_update(self, list bids, list asks)

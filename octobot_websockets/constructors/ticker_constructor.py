@@ -1,4 +1,4 @@
-#cython: language_level=2
+# cython: language_level=3
 #  Drakkar-Software OctoBot-Websockets
 #  Copyright (c) Drakkar-Software, All rights reserved.
 #
@@ -16,10 +16,11 @@
 #  License along with this library.
 from octobot_websockets.constants import TICKER
 
-from octobot_websockets.data.ticker cimport Ticker
-from octobot_websockets.feeds.feed cimport Feed
+from octobot_websockets.data.ticker import Ticker
+from octobot_websockets.feeds.feed import Feed
 
-cdef class TickerConstructor:
+
+class TickerConstructor:
     def __init__(self, feed: Feed, symbol: str):
         self.feed = feed
         self.ticker = Ticker()

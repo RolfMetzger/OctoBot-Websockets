@@ -1,4 +1,4 @@
-#cython: language_level=2
+# cython: language_level=3
 #  Drakkar-Software OctoBot-Websockets
 #  Copyright (c) Drakkar-Software, All rights reserved.
 #
@@ -26,5 +26,5 @@ cdef class Candle:
     cdef public float vol
     cdef public bint is_closed
 
-    cdef handle_candle_update(self, float price, float vol)
-    cdef on_close(self)
+    cpdef handle_candle_update(self, float price, float vol)
+    cpdef on_close(self)

@@ -1,4 +1,4 @@
-#cython: language_level=2
+# cython: language_level=3
 import asyncio
 import calendar
 import hashlib
@@ -13,23 +13,16 @@ from ccxt.async_support import bitmex
 
 from octobot_websockets.constants import TRADES, BUY, SELL, L2_BOOK, FUNDING, UNSUPPORTED, POSITION, ORDERS, TimeFrames, \
     TimeFramesMinutes, MSECONDS_TO_MINUTE, MSECONDS_TO_SECONDS
-from octobot_websockets.data.book cimport Book
-from octobot_websockets.feeds.feed cimport Feed
-from octobot_websockets.constructors.candle_constructor cimport CandleConstructor
-from octobot_websockets.constructors.ticker_constructor cimport TickerConstructor
+from octobot_websockets.data.book import Book
+from octobot_websockets.feeds.feed import Feed
+from octobot_websockets.constructors.candle_constructor import CandleConstructor
+from octobot_websockets.constructors.ticker_constructor import TickerConstructor
 
-cdef class Bitmex(Feed):
+
+class Bitmex(Feed):
     api = 'https://www.bitmex.com/api/v1'
     MAX_TABLE_LEN = 200
     CANDLE_RETRY_TIME = 30
-
-    cdef dict ticker_constructors
-    cdef dict candle_constructors
-
-    cdef int partial_received
-
-    cdef dict order_id # TODO remove
-    cdef dict l3_book # TODO remove
 
     def __init__(self, pairs=None, channels=None, callbacks=None, **kwargs):
         super().__init__('wss://www.bitmex.com/realtime', pairs=pairs, channels=channels, callbacks=callbacks, **kwargs)
@@ -37,7 +30,7 @@ cdef class Bitmex(Feed):
         self.candle_constructors = {}
         self._reset()
 
-    cdef _reset(self):
+    def _reset(self):
         self.partial_received = False
         self.order_id = {}
         self.l3_book = {}
@@ -45,23 +38,7 @@ cdef class Bitmex(Feed):
             self.l3_book[pair] = Book()
             self.order_id[pair] = defaultdict(dict)
 
-    async def _trade(self, dict msg):
-        """
-        trade msg example
-
-        {
-            'timestamp': '2018-05-19T12:25:26.632Z',
-            'symbol': 'XBTUSD',
-            'side': 'Buy',
-            'size': 40,
-            'price': 8335,
-            'tickDirection': 'PlusTick',
-            'trdMatchID': '5f4ecd49-f87f-41c0-06e3-4a9405b9cdde',
-            'grossValue': 479920,
-            'homeNotional': Decimal('0.0047992'),
-            'foreignNotional': 40
-        }
-        """
+    async def _trade(self, msg: dict):
         for data in msg['data']:
             await self.callbacks[TRADES](feed=self.get_name(),
                                          symbol=self.get_pair_from_exchange(data['symbol']),
@@ -69,43 +46,39 @@ cdef class Bitmex(Feed):
                                          amount=data['size'],
                                          price=data['price'],
                                          timestamp=data['timestamp'])
-        cdef dict last_data = msg['data'][-1]
-        cdef str symbol = self.get_pair_from_exchange(last_data['symbol'])
+        last_data: dict = msg['data'][-1]
+        last_symbol: str = self.get_pair_from_exchange(last_data['symbol'])
         try:
-            await self.ticker_constructors[symbol].handle_recent_trade(last_data['price'])
+            await self.ticker_constructors[last_symbol].handle_recent_trade(last_data['price'])
         except KeyError:
-            self.ticker_constructors[symbol] = TickerConstructor(self, symbol)
-            await self.ticker_constructors[symbol].handle_recent_trade(last_data['price'])
+            self.ticker_constructors[last_symbol] = TickerConstructor(self, last_symbol)
+            await self.ticker_constructors[last_symbol].handle_recent_trade(last_data['price'])
 
-        await self.__update_candles(last_data, symbol)
+        # await self.__update_candles(last_data, last_symbol)
 
-    async def __update_candles(self, last_data, symbol):
+    async def __update_candles(self, last_data, last_symbol):
         for time_frame in self.time_frames:
             try:
-                await self.candle_constructors[symbol][time_frame].handle_recent_trade(last_data['price'],
-                                                                                       last_data['size'])
+                await self.candle_constructors[last_symbol][time_frame].handle_recent_trade(last_data['price'],
+                                                                                            last_data['size'])
             except KeyError:
-                if symbol not in self.candle_constructors:
-                    self.candle_constructors[symbol] = {}
+                if last_symbol not in self.candle_constructors:
+                    self.candle_constructors[last_symbol] = {}
 
-                if time_frame not in self.candle_constructors[symbol]:
-                    started_candle = await self.get_last_candle_from_ccxt(symbol, time_frame)
+                if time_frame not in self.candle_constructors[last_symbol]:
+                    started_candle = await self.get_last_candle_from_ccxt(last_symbol, time_frame)
                     print(f"start = {started_candle}")
-                    self.candle_constructors[symbol][time_frame] = CandleConstructor(self, symbol,
-                                                                                     time_frame,
-                                                                                     started_candle)
+                    self.candle_constructors[last_symbol][time_frame] = CandleConstructor(self, last_symbol,
+                                                                                          time_frame,
+                                                                                          started_candle)
 
+                await self.candle_constructors[last_symbol][time_frame].handle_recent_trade(last_data['price'],
+                                                                                            last_data['size'])
 
-                await self.candle_constructors[symbol][time_frame].handle_recent_trade(last_data['price'],
-                                                                                       last_data['size'])
-
-    async def get_last_candle_from_ccxt(self, symbol: str, time_frame: TimeFrames) -> list:
-        cdef double since
-        cdef list candle
-
+    async def get_last_candle_from_ccxt(self, last_symbol: str, time_frame: TimeFrames) -> list:
         while True:
-            since = self.async_ccxt_client.milliseconds () - MSECONDS_TO_MINUTE * TimeFramesMinutes[time_frame]
-            candle = (await self.async_ccxt_client.fetch_ohlcv(symbol, time_frame.value, since, 1))
+            since: int = self.async_ccxt_client.milliseconds() - MSECONDS_TO_MINUTE * TimeFramesMinutes[time_frame]
+            candle: list = (await self.async_ccxt_client.fetch_ohlcv(last_symbol, time_frame.value, since, 1))
             if candle:
                 candle[0][0] = self.fix_timestamp(candle[0][0])
                 return candle[0]
@@ -113,8 +86,8 @@ cdef class Bitmex(Feed):
                 self.logger.warning("Failed to synchronize candles, retrying...")
                 await asyncio.sleep(self.CANDLE_RETRY_TIME)
 
-    async def _l2_book(self, dict msg):
-        cdef Book book = Book()
+    async def _l2_book(self, msg: dict):
+        book: Book = Book()
         book.handle_book_update(msg['data'][0]['bids'], msg['data'][0]['asks'])
         await self.callbacks[L2_BOOK](feed=self.get_name(),
                                       symbol=self.get_pair_from_exchange(msg['data'][0]['symbol']),
@@ -122,76 +95,19 @@ cdef class Bitmex(Feed):
                                       bids=book.bids,
                                       timestamp=book.timestamp)
 
-    async def _quote(self, dict msg):
+    async def _quote(self, msg: dict):
         """Return a ticker object. Generated from quote and trade."""
-        cdef dict data = msg['data'][0]
-        cdef str symbol = self.get_pair_from_exchange(data['symbol'])
+        ticker_data: dict = msg['data'][0]
+        ticker_symbol: str = self.get_pair_from_exchange(ticker_data['symbol'])
         try:
-            await self.ticker_constructors[symbol].handle_quote(data['bidPrice'], data['askPrice'])
+            await self.ticker_constructors[ticker_symbol].handle_quote(ticker_data['bidPrice'], ticker_data['askPrice'])
         except KeyError:
-            self.ticker_constructors[symbol] = TickerConstructor(self, symbol)
-            await self.ticker_constructors[symbol].handle_quote(data['bidPrice'], data['askPrice'])
+            self.ticker_constructors[ticker_symbol] = TickerConstructor(self, ticker_symbol)
+            await self.ticker_constructors[ticker_symbol].handle_quote(ticker_data['bidPrice'], ticker_data['askPrice'])
 
-    async def _order(self, dict msg):
-        """
-        {
-           "table":"execution",
-           "action":"insert",
-           "data":[
-              {
-                 "execID":"0193e879-cb6f-2891-d099-2c4eb40fee21",
-                 "orderID":"00000000-0000-0000-0000-000000000000",
-                 "clOrdID":"",
-                 "clOrdLinkID":"",
-                 "account":2,
-                 "symbol":"XBTUSD",
-                 "side":"Sell",
-                 "lastQty":1,
-                 "lastPx":1134.37,
-                 "underlyingLastPx":null,
-                 "lastMkt":"XBME",
-                 "lastLiquidityInd":"RemovedLiquidity",
-                 "simpleOrderQty":null,
-                 "orderQty":1,
-                 "price":1134.37,
-                 "displayQty":null,
-                 "stopPx":null,
-                 "pegOffsetValue":null,
-                 "pegPriceType":"",
-                 "currency":"USD",
-                 "settlCurrency":"XBt",
-                 "execType":"Trade",
-                 "ordType":"Limit",
-                 "timeInForce":"ImmediateOrCancel",
-                 "execInst":"",
-                 "contingencyType":"",
-                 "exDestination":"XBME",
-                 "ordStatus":"Filled",
-                 "triggered":"",
-                 "workingIndicator":false,
-                 "ordRejReason":"",
-                 "simpleLeavesQty":0,
-                 "leavesQty":0,
-                 "simpleCumQty":0.001,
-                 "cumQty":1,
-                 "avgPx":1134.37,
-                 "commission":0.00075,
-                 "tradePublishIndicator":"DoNotPublishTrade",
-                 "multiLegReportingType":"SingleSecurity",
-                 "text":"Liquidation",
-                 "trdMatchID":"7f4ab7f6-0006-3234-76f4-ae1385aad00f",
-                 "execCost":88155,
-                 "execComm":66,
-                 "homeNotional":-0.00088155,
-                 "foreignNotional":1,
-                 "transactTime":"2017-04-04T22:07:46.035Z",
-                 "timestamp":"2017-04-04T22:07:46.035Z"
-              }
-           ]
-        }
-        """
-        cdef int is_canceled = 'ordStatus' in msg['data'] and msg['data']['ordStatus'] == 'Canceled'
-        cdef int is_filled = 'ordStatus' in msg['data'] and msg['data']['ordStatus'] == 'Filled'
+    async def _order(self, msg: dict):
+        is_canceled: int = 'ordStatus' in msg['data'] and msg['data']['ordStatus'] == 'Canceled'
+        is_filled: int = 'ordStatus' in msg['data'] and msg['data']['ordStatus'] == 'Filled'
         await self.callbacks[ORDERS](feed=self.get_name(),
                                      symbol=self.get_pair_from_exchange(msg['data']['symbol']),
                                      price=msg['data']['avgEntryPrice'],
@@ -200,67 +116,7 @@ cdef class Bitmex(Feed):
                                      is_canceled=is_canceled,
                                      is_filled=is_filled)
 
-    async def _position(self, dict msg):
-        """
-        {
-           "table":"position",
-           "action":"update",
-           "data":[
-              {
-                 "account":2,
-                 "symbol":"XBTUSD",
-                 "currency":"XBt",
-                 "deleveragePercentile":null,
-                 "rebalancedPnl":-2171150,
-                 "prevRealisedPnl":2172153,
-                 "execSellQty":2001,
-                 "execSellCost":172394155,
-                 "execQty":0,
-                 "execCost":-2259128,
-                 "execComm":87978,
-                 "currentTimestamp":"2017-04-04T22:16:38.547Z",
-                 "currentQty":0,
-                 "currentCost":-2259128,
-                 "currentComm":87978,
-                 "realisedCost":-2259128,
-                 "unrealisedCost":0,
-                 "grossExecCost":0,
-                 "isOpen":false,
-                 "markPrice":null,
-                 "markValue":0,
-                 "riskValue":0,
-                 "homeNotional":0,
-                 "foreignNotional":0,
-                 "posState":"",
-                 "posCost":0,
-                 "posCost2":0,
-                 "posInit":0,
-                 "posComm":0,
-                 "posMargin":0,
-                 "posMaint":0,
-                 "maintMargin":0,
-                 "realisedGrossPnl":2259128,
-                 "realisedPnl":2171150,
-                 "unrealisedGrossPnl":0,
-                 "unrealisedPnl":0,
-                 "unrealisedPnlPcnt":0,
-                 "unrealisedRoePcnt":0,
-                 "simpleQty":0,
-                 "simpleCost":0,
-                 "simpleValue":0,
-                 "simplePnl":0,
-                 "simplePnlPcnt":0,
-                 "avgCostPrice":null,
-                 "avgEntryPrice":null,
-                 "breakEvenPrice":null,
-                 "marginCallPrice":null,
-                 "liquidationPrice":null,
-                 "bankruptPrice":null,
-                 "timestamp":"2017-04-04T22:16:38.547Z"
-              }
-           ]
-        }
-        """
+    async def _position(self, msg: dict):
         await self.callbacks[POSITION](feed=self.get_name(),
                                        symbol=self.get_pair_from_exchange(msg['data']['symbol']),
                                        entry_price=msg['data']['avgEntryPrice'],
@@ -271,35 +127,7 @@ cdef class Bitmex(Feed):
                                        liquidation_price=msg['data']['liquidationPrice'],
                                        timestamp=msg['data']['timestamp'])
 
-    async def _funding(self, dict msg):
-        """
-        {'table': 'funding',
-         'action': 'partial',
-         'keys': ['timestamp', 'symbol'],
-         'types': {
-             'timestamp': 'timestamp',
-             'symbol': 'symbol',
-             'fundingInterval': 'timespan',
-             'fundingRate': 'float',
-             'fundingRateDaily': 'float'
-            },
-         'foreignKeys': {
-             'symbol': 'instrument'
-            },
-         'attributes': {
-             'timestamp': 'sorted',
-             'symbol': 'grouped'
-            },
-         'filter': {'symbol': 'XBTUSD'},
-         'data': [{
-             'timestamp': '2018-08-21T20:00:00.000Z',
-             'symbol': 'XBTUSD',
-             'fundingInterval': '2000-01-01T08:00:00.000Z',
-             'fundingRate': Decimal('-0.000561'),
-             'fundingRateDaily': Decimal('-0.001683')
-            }]
-        }
-        """
+    async def _funding(self, msg: dict):
         for data in msg['data']:
             await self.callbacks[FUNDING](feed=self.get_name(),
                                           symbol=self.get_pair_from_exchange(data['symbol']),
@@ -308,53 +136,53 @@ cdef class Bitmex(Feed):
                                           rate=data['fundingRate'],
                                           rate_daily=data['fundingRateDaily'])
 
-    async def on_message(self, str json_message):
+    async def on_message(self, json_message: str):
         """Handler for parsing WS messages."""
-        cdef dict message = json.loads(json_message)
+        parsed_message: dict = json.loads(json_message)
 
-        cdef str table = message['table'] if 'table' in message else None
-        cdef str action = message['action'] if 'action' in message else None
+        table: str = parsed_message['table'] if 'table' in parsed_message else None
+        action: str = parsed_message['action'] if 'action' in parsed_message else None
 
         try:
-            if 'info' in message:
-                self.logger.info(f"{self.get_name()}: info message : {message}")
-            elif 'subscribe' in message:
-                if not message['success']:
-                    self.logger.error(f"{self.get_name()}: subscribed failed : {message}")
-            elif 'status' in message:
-                if message['status'] == 400:
-                    self.logger.error(message['error'])
-                if message['status'] == 401:
+            if 'info' in parsed_message:
+                self.logger.info(f"{self.get_name()}: info message : {parsed_message}")
+            elif 'subscribe' in parsed_message:
+                if not parsed_message['success']:
+                    self.logger.error(f"{self.get_name()}: subscribed failed : {parsed_message}")
+            elif 'status' in parsed_message:
+                if parsed_message['status'] == 400:
+                    self.logger.error(parsed_message['error'])
+                if parsed_message['status'] == 401:
                     self.logger.error("API Key incorrect, please check and restart.")
-            elif 'error' in message:
-                self.logger.error(f"{self.get_name()}: Error message from exchange: {message}")
+            elif 'error' in parsed_message:
+                self.logger.error(f"{self.get_name()}: Error message from exchange: {parsed_message}")
             elif action:
                 if table == self.get_trades_feed():
-                    await self._trade(message)
+                    await self._trade(parsed_message)
 
                 elif table == self.get_funding_feed():
-                    await self._funding(message)
+                    await self._funding(parsed_message)
 
                 elif table == self.get_ticker_feed():
-                    await self._quote(message)
+                    await self._quote(parsed_message)
 
                 elif table == self.get_margin_feed():
-                    await self._position(message)
+                    await self._position(parsed_message)
 
                 elif table == self.get_position_feed():
-                    await self._position(message)
+                    await self._position(parsed_message)
 
                 elif table == self.get_orders_feed():
-                    await self._order(message)
+                    await self._order(parsed_message)
 
                 elif table == self.get_execution_feed():
-                    await self._order(message)
+                    await self._order(parsed_message)
 
                 # elif table == self.get_L3_book_feed():
                 #     await self.handle_book_update(message)
 
                 elif table == self.get_L2_book_feed():
-                    await self._l2_book(message)
+                    await self._l2_book(parsed_message)
                 else:
                     raise Exception(f"Unknown action: {action}")
         except Exception as e:
@@ -429,7 +257,7 @@ cdef class Bitmex(Feed):
     #                                   forced=forced)
 
     async def subscribe(self):
-        cdef list chans = []
+        chans: list = []
         for channel in self.channels:
             for pair in self.pairs:
                 chans.append("{}:{}".format(channel, pair))
@@ -439,7 +267,7 @@ cdef class Bitmex(Feed):
     async def __send_command(self, command, args):
         await self.websocket.send(json.dumps({"op": command, "args": args or []}))
 
-    cdef list get_auth(self):
+    def get_auth(self):
         """Return auth headers. Will use API Keys if present in settings."""
         if self.api_key:
             self.logger.info("Authenticating with API Key.")
@@ -511,14 +339,14 @@ cdef class Bitmex(Feed):
     def get_execution_feed(cls):
         return 'execution'
 
-    cdef double fix_timestamp(self, double ts):
+    def fix_timestamp(self, ts):
         return ts / MSECONDS_TO_SECONDS
 
-    cdef double timestamp_normalize(self, double ts):
+    def timestamp_normalize(self, ts):
         return calendar.timegm(dt.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fZ").utctimetuple())
 
     # From https://github.com/BitMEX/api-connectors/blob/master/official-ws/python/util/api_key.py
-    cdef int generate_nonce(self):
+    def generate_nonce(self):
         return int(round(time.time() + 3600))
 
     # Generates an API signature.
@@ -533,15 +361,15 @@ cdef class Bitmex(Feed):
     # nonce=1416993995705
     # data={"symbol":"XBTZ14","quantity":1,"price":395.01}
     # signature = HEX(HMAC_SHA256(secret, 'POST/api/v1/order1416993995705{"symbol":"XBTZ14","quantity":1,"price":395.01}'))
-    cdef str generate_signature(self, secret, verb, url, nonce, data):
+    def generate_signature(self, secret, verb, url, nonce, data):
         """Generate a request signature compatible with BitMEX."""
         # Parse the url so we can remove the base and extract just the path.
-        cdef object parsedURL = urllib.parse.urlparse(url)
-        cdef str path = parsedURL.path
+        parsedURL = urllib.parse.urlparse(url)
+        path: str = parsedURL.path
         if parsedURL.query:
             path += '?' + parsedURL.query
 
         # print "Computing HMAC: %s" % verb + path + str(nonce) + data
-        cdef str message = (verb + path + str(nonce) + data).encode('utf-8')
+        message: str = (verb + path + str(nonce) + data).encode('utf-8')
 
         return hmac.new(secret.encode('utf-8'), message, digestmod=hashlib.sha256).hexdigest()

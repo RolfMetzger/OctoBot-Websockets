@@ -32,13 +32,8 @@ packages_list = ["octobot_websockets.callback",
                  "octobot_websockets.feeds.feed",
                  "octobot_websockets.feeds.bitmex"]
 
-PACKAGE_DATA = {
-    package: [f"{package.replace('.', '/')}.pxd", f"{package.replace('.', '/')}.pyx"]
-    for package in packages_list
-}
-
 ext_modules = [
-    Extension(package, [f"{package.replace('.', '/')}.pyx"])
+    Extension(package, [f"{package.replace('.', '/')}.py"])
     for package in packages_list]
 
 # long description from README file
@@ -57,7 +52,6 @@ setup(
     author_email='drakkar-software@protonmail.com',
     description='OctoBot project exchange websockets',
     packages=PACKAGES,
-    package_data=PACKAGE_DATA,
     long_description=DESCRIPTION,
     install_requires=REQUIRED,
     cmdclass={'build_ext': build_ext},

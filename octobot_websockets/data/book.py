@@ -1,4 +1,4 @@
-#cython: language_level=2
+# cython: language_level=3
 #  Drakkar-Software OctoBot-Websockets
 #  Copyright (c) Drakkar-Software, All rights reserved.
 #
@@ -17,13 +17,14 @@
 import operator
 from time import time
 
-cdef class Book:
+
+class Book:
     def __init__(self):
         self.asks = []
         self.bids = []
         self.timestamp = 0
 
-    cdef handle_book_update(self, list bids, list asks):
+    def handle_book_update(self, bids, asks):
         self.bids = sorted(bids, key=operator.itemgetter(0), reverse=True)
         self.asks = sorted(asks, key=operator.itemgetter(0))
         self.timestamp = time()

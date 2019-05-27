@@ -1,4 +1,4 @@
-#cython: language_level=2
+# cython: language_level=3
 #  Drakkar-Software OctoBot-Websockets
 #  Copyright (c) Drakkar-Software, All rights reserved.
 #
@@ -48,9 +48,9 @@ cdef class Feed:
 
     cdef __initialize(self, list pairs, list channels, dict callbacks)
     cpdef start(self)
-    cdef on_close(self)
     cpdef stop(self)
     cpdef close(self)
+    cdef on_close(self)
     cdef list get_auth(self)
     cdef list get_pairs(self)
     cdef double fix_timestamp(self, double ts)

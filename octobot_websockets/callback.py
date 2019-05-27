@@ -1,10 +1,8 @@
-#cython: language_level=2
+# cython: language_level=3
 from octobot_websockets.constants import TimeFrames
 
 
-cdef class Callback(object):
-    cdef object callback
-
+class Callback(object):
     def __init__(self, callback):
         self.callback = callback
 
@@ -12,7 +10,7 @@ cdef class Callback(object):
         raise NotImplemented
 
 
-cdef class TradeCallback(Callback):
+class TradeCallback(Callback):
     async def __call__(self, *,
                        feed: str,
                        symbol: str,
@@ -23,7 +21,7 @@ cdef class TradeCallback(Callback):
         await self.callback(feed, symbol, timestamp, side, amount, price)
 
 
-cdef class TickerCallback(Callback):
+class TickerCallback(Callback):
     async def __call__(self, *,
                        feed: str,
                        symbol: str,
@@ -34,7 +32,7 @@ cdef class TickerCallback(Callback):
         await self.callback(feed, symbol, bid, ask, last, timestamp)
 
 
-cdef class CandleCallback(Callback):
+class CandleCallback(Callback):
     async def __call__(self, *,
                        feed: str,
                        symbol: str,
@@ -48,7 +46,7 @@ cdef class CandleCallback(Callback):
         await self.callback(feed, symbol, timestamp, time_frame, close, volume, high, low, opn)
 
 
-cdef class KlineCallback(Callback):
+class KlineCallback(Callback):
     async def __call__(self, *,
                        feed: str,
                        symbol: str,
@@ -61,7 +59,8 @@ cdef class KlineCallback(Callback):
                        opn: float):
         await self.callback(feed, symbol, timestamp, time_frame, close, volume, high, low, opn)
 
-cdef class BookCallback(Callback):
+
+class BookCallback(Callback):
     """
     For full L2/L3 book updates
     """
@@ -75,7 +74,7 @@ cdef class BookCallback(Callback):
         await self.callback(feed, symbol, asks, bids, timestamp)
 
 
-cdef class OrdersCallback(Callback):
+class OrdersCallback(Callback):
     """
     For orders updates
     """
@@ -91,7 +90,7 @@ cdef class OrdersCallback(Callback):
         await self.callback(feed, symbol, price, quantity, order_id, is_canceled, is_filled)
 
 
-cdef class PositionCallback(Callback):
+class PositionCallback(Callback):
     """
     For position updates
     """
@@ -117,7 +116,7 @@ cdef class PositionCallback(Callback):
                             timestamp)
 
 
-cdef class UpdatedBookCallback(Callback):
+class UpdatedBookCallback(Callback):
     """
     For Book Deltas
     """
@@ -149,9 +148,9 @@ cdef class UpdatedBookCallback(Callback):
         await self.callback(feed, symbol, delta)
 
 
-cdef class FundingCallback(Callback):
+class FundingCallback(Callback):
     pass
 
 
-cdef class PortfolioCallback(Callback):
+class PortfolioCallback(Callback):
     pass
