@@ -2,8 +2,8 @@ import asyncio
 
 import pytest
 
-from octobot_websockets.constants import L2_BOOK, TRADES, TimeFrames, TICKER, CANDLE, KLINE
-from octobot_websockets.callback import TradeCallback, BookCallback, CandleCallback, TickerCallback, KlineCallback
+from octobot_websockets.callback import TradeCallback, BookCallback
+from octobot_websockets.constants import Feeds
 from octobot_websockets.feeds.bitmex import Bitmex
 
 pytestmark = pytest.mark.asyncio
@@ -31,9 +31,9 @@ async def ticker(feed, symbol, bid, ask, last, timestamp):
 
 
 async def test_bitmex_ticker():
-    b = Bitmex(pairs=["BTC/USD"], channels=[TRADES, L2_BOOK], callbacks={
-        TRADES: TradeCallback(trade),
-        L2_BOOK: BookCallback(book)
+    b = Bitmex(pairs=["BTC/USD"], channels=[Feeds.TRADES, Feeds.L2_BOOK], callbacks={
+        Feeds.TRADES: TradeCallback(trade),
+        Feeds.L2_BOOK: BookCallback(book)
     }, create_loop=False)
     b.start()
     await asyncio.sleep(5)

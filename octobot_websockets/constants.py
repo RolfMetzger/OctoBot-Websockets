@@ -18,19 +18,6 @@ from enum import Enum
 PROJECT_NAME = "OctoBot-Websockets"
 VERSION = "1.0.1"  # major.minor.patch
 
-L2_BOOK = 'l2_book'
-L3_BOOK = 'l3_book'
-BOOK_DELTA = 'book_delta'
-TRADES = 'trades'
-TICKER = 'ticker'
-CANDLE = 'candle'
-KLINE = 'kline'
-FUNDING = 'funding'
-ORDERS = 'orders'
-PORTFOLIO = 'portfolio'
-POSITION = 'position'
-UNSUPPORTED = 'unsupported'
-
 BUY = 'buy'
 SELL = 'sell'
 
@@ -46,6 +33,21 @@ MSECONDS_TO_MINUTE = MSECONDS_TO_SECONDS * MINUTE_TO_SECONDS
 HOURS_TO_SECONDS = MINUTE_TO_SECONDS * 60
 HOURS_TO_MSECONDS = MSECONDS_TO_SECONDS * MINUTE_TO_SECONDS * MINUTE_TO_SECONDS
 DAYS_TO_SECONDS = HOURS_TO_SECONDS * 24
+
+
+class Feeds(Enum):
+    L2_BOOK = 'l2_book'
+    L3_BOOK = 'l3_book'
+    BOOK_DELTA = 'book_delta'
+    TRADES = 'trades'
+    TICKER = 'ticker'
+    CANDLE = 'candle'
+    KLINE = 'kline'
+    FUNDING = 'funding'
+    ORDERS = 'orders'
+    PORTFOLIO = 'portfolio'
+    POSITION = 'position'
+    UNSUPPORTED = 'unsupported'
 
 
 class TimeFrames(Enum):

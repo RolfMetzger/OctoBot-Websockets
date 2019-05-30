@@ -14,8 +14,7 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
-from octobot_websockets.constants import TICKER
-
+from octobot_websockets.constants import Feeds
 from octobot_websockets.data.ticker import Ticker
 from octobot_websockets.feeds.feed import Feed
 
@@ -36,9 +35,9 @@ class TickerConstructor:
 
     async def __handle_refresh(self):
         if self.ticker.is_ready():
-            await self.feed.callbacks[TICKER](feed=self.feed.get_name(),
-                                              symbol=self.symbol,
-                                              bid=self.ticker.bid_price,
-                                              ask=self.ticker.ask_price,
-                                              last=self.ticker.last_price,
-                                              timestamp=self.ticker.timestamp)
+            await self.feed.callbacks[Feeds.TICKER](feed=self.feed.get_name(),
+                                                    symbol=self.symbol,
+                                                    bid=self.ticker.bid_price,
+                                                    ask=self.ticker.ask_price,
+                                                    last=self.ticker.last_price,
+                                                    timestamp=self.ticker.timestamp)

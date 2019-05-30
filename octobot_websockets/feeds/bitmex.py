@@ -8,11 +8,12 @@ import time
 import urllib
 from collections import defaultdict
 from datetime import datetime as dt
+from enum import Enum
 
 from ccxt.async_support import bitmex
 
-from octobot_websockets.constants import TRADES, BUY, SELL, L2_BOOK, FUNDING, UNSUPPORTED, POSITION, ORDERS, TimeFrames, \
-    TimeFramesMinutes, MSECONDS_TO_MINUTE, MSECONDS_TO_SECONDS
+from octobot_websockets.constants import BUY, SELL, TimeFrames, TimeFramesMinutes, MSECONDS_TO_MINUTE, \
+    MSECONDS_TO_SECONDS, Feeds
 from octobot_websockets.data.book import Book
 from octobot_websockets.feeds.feed import Feed
 from octobot_websockets.constructors.candle_constructor import CandleConstructor
@@ -40,12 +41,12 @@ class Bitmex(Feed):
 
     async def _trade(self, msg: dict):
         for data in msg['data']:
-            await self.callbacks[TRADES](feed=self.get_name(),
-                                         symbol=self.get_pair_from_exchange(data['symbol']),
-                                         side=BUY if data['side'] == 'Buy' else SELL,
-                                         amount=data['size'],
-                                         price=data['price'],
-                                         timestamp=data['timestamp'])
+            await self.callbacks[Feeds.TRADES](feed=self.get_name(),
+                                               symbol=self.get_pair_from_exchange(data['symbol']),
+                                               side=BUY if data['side'] == 'Buy' else SELL,
+                                               amount=data['size'],
+                                               price=data['price'],
+                                               timestamp=data['timestamp'])
         last_data: dict = msg['data'][-1]
         last_symbol: str = self.get_pair_from_exchange(last_data['symbol'])
         try:
@@ -89,11 +90,11 @@ class Bitmex(Feed):
     async def _l2_book(self, msg: dict):
         book: Book = Book()
         book.handle_book_update(msg['data'][0]['bids'], msg['data'][0]['asks'])
-        await self.callbacks[L2_BOOK](feed=self.get_name(),
-                                      symbol=self.get_pair_from_exchange(msg['data'][0]['symbol']),
-                                      asks=book.asks,
-                                      bids=book.bids,
-                                      timestamp=book.timestamp)
+        await self.callbacks[Feeds.L2_BOOK](feed=self.get_name(),
+                                            symbol=self.get_pair_from_exchange(msg['data'][0]['symbol']),
+                                            asks=book.asks,
+                                            bids=book.bids,
+                                            timestamp=book.timestamp)
 
     async def _quote(self, msg: dict):
         """Return a ticker object. Generated from quote and trade."""
@@ -108,33 +109,33 @@ class Bitmex(Feed):
     async def _order(self, msg: dict):
         is_canceled: int = 'ordStatus' in msg['data'] and msg['data']['ordStatus'] == 'Canceled'
         is_filled: int = 'ordStatus' in msg['data'] and msg['data']['ordStatus'] == 'Filled'
-        await self.callbacks[ORDERS](feed=self.get_name(),
-                                     symbol=self.get_pair_from_exchange(msg['data']['symbol']),
-                                     price=msg['data']['avgEntryPrice'],
-                                     quantity=msg['data']['cumQty'],
-                                     order_id=msg['data']['orderID'],
-                                     is_canceled=is_canceled,
-                                     is_filled=is_filled)
+        await self.callbacks[Feeds.ORDERS](feed=self.get_name(),
+                                           symbol=self.get_pair_from_exchange(msg['data']['symbol']),
+                                           price=msg['data']['avgEntryPrice'],
+                                           quantity=msg['data']['cumQty'],
+                                           order_id=msg['data']['orderID'],
+                                           is_canceled=is_canceled,
+                                           is_filled=is_filled)
 
     async def _position(self, msg: dict):
-        await self.callbacks[POSITION](feed=self.get_name(),
-                                       symbol=self.get_pair_from_exchange(msg['data']['symbol']),
-                                       entry_price=msg['data']['avgEntryPrice'],
-                                       cost=msg['data']['simpleCost'],
-                                       quantity=msg['data']['simpleQty'],
-                                       pnl_percent=msg['data']['simplePnlPcnt'],
-                                       mark_price=msg['data']['markPrice'],
-                                       liquidation_price=msg['data']['liquidationPrice'],
-                                       timestamp=msg['data']['timestamp'])
+        await self.callbacks[Feeds.POSITION](feed=self.get_name(),
+                                             symbol=self.get_pair_from_exchange(msg['data']['symbol']),
+                                             entry_price=msg['data']['avgEntryPrice'],
+                                             cost=msg['data']['simpleCost'],
+                                             quantity=msg['data']['simpleQty'],
+                                             pnl_percent=msg['data']['simplePnlPcnt'],
+                                             mark_price=msg['data']['markPrice'],
+                                             liquidation_price=msg['data']['liquidationPrice'],
+                                             timestamp=msg['data']['timestamp'])
 
     async def _funding(self, msg: dict):
         for data in msg['data']:
-            await self.callbacks[FUNDING](feed=self.get_name(),
-                                          symbol=self.get_pair_from_exchange(data['symbol']),
-                                          timestamp=data['timestamp'],
-                                          interval=data['fundingInterval'],
-                                          rate=data['fundingRate'],
-                                          rate_daily=data['fundingRateDaily'])
+            await self.callbacks[Feeds.FUNDING](feed=self.get_name(),
+                                                symbol=self.get_pair_from_exchange(data['symbol']),
+                                                timestamp=data['timestamp'],
+                                                interval=data['fundingInterval'],
+                                                rate=data['fundingRate'],
+                                                rate_daily=data['fundingRateDaily'])
 
     async def on_message(self, json_message: str):
         """Handler for parsing WS messages."""
@@ -293,51 +294,51 @@ class Bitmex(Feed):
 
     @classmethod
     def get_L2_book_feed(cls):
-        return 'orderBook10'
+        return BitmexFeeds.L2_BOOK.value
 
     @classmethod
     def get_L3_book_feed(cls):
-        return UNSUPPORTED  #  'orderBookL2'
+        return Feeds.UNSUPPORTED.value  #  'orderBookL2'
 
     @classmethod
     def get_trades_feed(cls):
-        return 'trade'
+        return BitmexFeeds.TRADES.value
 
     @classmethod
     def get_ticker_feed(cls):
-        return 'quote'
+        return BitmexFeeds.TICKER.value
 
     @classmethod
     def get_candle_feed(cls):
-        return 'candle'
+        return Feeds.CANDLE.value
 
     @classmethod
     def get_kline_feed(cls):
-        return 'kline'
+        return Feeds.KLINE.value
 
     @classmethod
     def get_funding_feed(cls):
-        return 'funding'
+        return Feeds.FUNDING.value
 
     @classmethod
     def get_margin_feed(cls):
-        return 'margin'
+        return Feeds.UNSUPPORTED.value
 
     @classmethod
     def get_position_feed(cls):
-        return 'position'
+        return Feeds.POSITION.value
 
     @classmethod
     def get_portfolio_feed(cls):
-        return UNSUPPORTED
+        return Feeds.UNSUPPORTED.value
 
     @classmethod
     def get_orders_feed(cls):
-        return 'order'
+        return Feeds.ORDERS.value
 
     @classmethod
     def get_execution_feed(cls):
-        return 'execution'
+        return Feeds.UNSUPPORTED.value
 
     def fix_timestamp(self, ts):
         return ts / MSECONDS_TO_SECONDS
@@ -373,3 +374,9 @@ class Bitmex(Feed):
         message: str = (verb + path + str(nonce) + data).encode('utf-8')
 
         return hmac.new(secret.encode('utf-8'), message, digestmod=hashlib.sha256).hexdigest()
+
+
+class BitmexFeeds(Enum):
+    TRADES = 'trade'
+    TICKER = 'quote'
+    L2_BOOK = 'orderBook10'

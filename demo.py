@@ -3,7 +3,7 @@ from logging import DEBUG
 from octobot_commons.logging.logging_util import get_logger, set_global_logger_level
 
 from octobot_websockets.callback import TradeCallback, TickerCallback, BookCallback, CandleCallback, KlineCallback
-from octobot_websockets.constants import TRADES, TICKER, L2_BOOK, CANDLE, TimeFrames, KLINE
+from octobot_websockets.constants import TimeFrames, Feeds
 from octobot_websockets.feeds.bitmex import Bitmex
 
 logger = get_logger("DEMO")
@@ -41,12 +41,12 @@ async def funding(**kwargs):
 
 def main():
     set_global_logger_level(DEBUG)
-    b = Bitmex(pairs=["BTC/USD", "ETH/USD"], channels=[TRADES, TICKER, L2_BOOK, CANDLE], callbacks={
-        TRADES: TradeCallback(trade),
-        TICKER: TickerCallback(ticker),
-        L2_BOOK: BookCallback(book),
-        CANDLE: CandleCallback(candle),
-        KLINE: KlineCallback(kline)
+    b = Bitmex(pairs=["BTC/USD", "ETH/USD"], channels=[Feeds.TRADES, Feeds.TICKER, Feeds.L2_BOOK, Feeds.CANDLE], callbacks={
+        Feeds.TRADES: TradeCallback(trade),
+        Feeds.TICKER: TickerCallback(ticker),
+        Feeds.L2_BOOK: BookCallback(book),
+        Feeds.CANDLE: CandleCallback(candle),
+        Feeds.KLINE: KlineCallback(kline)
     }, time_frames=[TimeFrames.ONE_MINUTE])
     b.start()
 

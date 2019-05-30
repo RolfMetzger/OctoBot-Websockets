@@ -27,9 +27,7 @@ import websockets
 from octobot_commons.logging.logging_util import get_logger
 
 from octobot_websockets.callback import Callback
-from octobot_websockets.constants import TRADES, TICKER, L2_BOOK, L3_BOOK, BOOK_DELTA, FUNDING, CANDLE, \
-    POSITION, \
-    ORDERS, PORTFOLIO, TimeFrames, HOURS_TO_SECONDS, KLINE, UNSUPPORTED
+from octobot_websockets.constants import TimeFrames, HOURS_TO_SECONDS, Feeds
 
 
 class Feed:
@@ -90,20 +88,20 @@ class Feed:
         self.pairs = [self.get_exchange_pair(pair) for pair in pairs] if pairs else []
         self.channels = [self.feed_to_exchange(chan) for chan in channels] if channels else []
 
-        self.callbacks = {TRADES: Callback(None),
-                          TICKER: Callback(None),
-                          L2_BOOK: Callback(None),
-                          L3_BOOK: Callback(None),
-                          CANDLE: Callback(None),
-                          KLINE: Callback(None),
-                          PORTFOLIO: Callback(None),
-                          ORDERS: Callback(None),
-                          POSITION: Callback(None)}
+        self.callbacks = {Feeds.TRADES: Callback(None),
+                          Feeds.TICKER: Callback(None),
+                          Feeds.L2_BOOK: Callback(None),
+                          Feeds.L3_BOOK: Callback(None),
+                          Feeds.CANDLE: Callback(None),
+                          Feeds.KLINE: Callback(None),
+                          Feeds.PORTFOLIO: Callback(None),
+                          Feeds.ORDERS: Callback(None),
+                          Feeds.POSITION: Callback(None)}
 
         if callbacks:
             for cb_type, cb_func in callbacks.items():
                 self.callbacks[cb_type] = cb_func
-                if cb_type == BOOK_DELTA:
+                if cb_type == Feeds.BOOK_DELTA:
                     self.do_deltas = True
 
     def start(self):
@@ -257,16 +255,16 @@ class Feed:
     @classmethod
     def get_feeds(cls) -> dict:
         return {
-            FUNDING: cls.get_funding_feed(),
-            L2_BOOK: cls.get_L2_book_feed(),
-            L3_BOOK: cls.get_L3_book_feed(),
-            TRADES: cls.get_trades_feed(),
-            CANDLE: cls.get_candle_feed(),
-            KLINE: cls.get_kline_feed(),
-            TICKER: cls.get_ticker_feed(),
-            POSITION: cls.get_position_feed(),
-            ORDERS: cls.get_orders_feed(),
-            PORTFOLIO: cls.get_portfolio_feed()
+            Feeds.FUNDING: cls.get_funding_feed(),
+            Feeds.L2_BOOK: cls.get_L2_book_feed(),
+            Feeds.L3_BOOK: cls.get_L3_book_feed(),
+            Feeds.TRADES: cls.get_trades_feed(),
+            Feeds.CANDLE: cls.get_candle_feed(),
+            Feeds.KLINE: cls.get_kline_feed(),
+            Feeds.TICKER: cls.get_ticker_feed(),
+            Feeds.POSITION: cls.get_position_feed(),
+            Feeds.ORDERS: cls.get_orders_feed(),
+            Feeds.PORTFOLIO: cls.get_portfolio_feed()
         }
 
     def get_pair_from_exchange(self, pair):
@@ -282,8 +280,8 @@ class Feed:
             raise ValueError(f'{pair} is not supported on {self.get_name()}')
 
     def feed_to_exchange(self, feed):
-        ret = self.get_feeds()[feed]
-        if ret == UNSUPPORTED:
+        ret: str = self.get_feeds()[feed]
+        if ret == Feeds.UNSUPPORTED.value:
             self.logger.error("{} is not supported on {}".format(feed, self.get_name()))
             raise ValueError(f"{feed} is not supported on {self.get_name()}")
         return ret
