@@ -15,7 +15,7 @@ matrix:
       python: nightly
       language: python
       script:
-        - make test
+        - pytest -rw tests
 
 deploy:
   - provider: pypi

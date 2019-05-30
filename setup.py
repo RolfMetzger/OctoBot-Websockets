@@ -52,6 +52,7 @@ setup(
     author_email='drakkar-software@protonmail.com',
     description='OctoBot project exchange websockets',
     packages=PACKAGES,
+    include_package_data=True,
     long_description=DESCRIPTION,
     install_requires=REQUIRED,
     cmdclass={'build_ext': build_ext},
@@ -63,7 +64,7 @@ setup(
     python_requires=REQUIRES_PYTHON,
     ext_modules=cythonize(ext_modules),
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Programming Language :: Python :: 3.7',
     ],
 )
