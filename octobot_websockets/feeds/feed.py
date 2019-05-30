@@ -34,12 +34,12 @@ class Feed:
     MAX_DELAY = HOURS_TO_SECONDS
 
     def __init__(self,
-                 address: str,
                  pairs: list = None,
                  channels: list = None,
                  callbacks: dict = None,
                  api_key: str = None,
                  api_secret: str = None,
+                 sub_protocols: list = None,
                  time_frames: List[TimeFrames] = None,
                  book_interval: int = 1000,
                  timeout: int = 120,
@@ -56,7 +56,7 @@ class Feed:
 
         self.api_key = api_key
         self.api_secret = api_secret
-        self.address = address
+        self.sub_protocols = sub_protocols if sub_protocols is not None else []
 
         self.timeout = timeout
         self.timeout_interval = timeout_interval
@@ -131,7 +131,8 @@ class Feed:
                 delay = self.MAX_DELAY
 
             try:
-                async with websockets.connect(self.address) as websocket:
+                async with websockets.connect(self.get_address(),
+                                              subprotocols=self.sub_protocols) as websocket:
                     self.websocket = websocket
                     await self.on_open()
                     self._watch_task = asyncio.create_task(self.__watch())
@@ -194,6 +195,10 @@ class Feed:
     @classmethod
     def get_name(cls) -> str:
         raise NotImplemented("get_name is not implemented")
+
+    @classmethod
+    def get_address(cls) -> str:
+        raise NotImplemented("get_address is not implemented")
 
     @classmethod
     def get_ccxt(cls) -> object:

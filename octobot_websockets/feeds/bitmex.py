@@ -26,7 +26,7 @@ class Bitmex(Feed):
     CANDLE_RETRY_TIME = 30
 
     def __init__(self, pairs=None, channels=None, callbacks=None, **kwargs):
-        super().__init__('wss://www.bitmex.com/realtime', pairs=pairs, channels=channels, callbacks=callbacks, **kwargs)
+        super().__init__(pairs=pairs, channels=channels, callbacks=callbacks, **kwargs)
         self.ticker_constructors = {}
         self.candle_constructors = {}
         self._reset()
@@ -287,6 +287,10 @@ class Bitmex(Feed):
     @classmethod
     def get_name(cls):
         return 'bitmex'
+
+    @classmethod
+    def get_address(cls):
+        return 'wss://www.bitmex.com/realtime'
 
     @classmethod
     def get_ccxt_async_client(cls):

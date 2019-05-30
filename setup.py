@@ -62,7 +62,7 @@ setup(
     data_files=[],
     setup_requires=['Cython'],
     python_requires=REQUIRES_PYTHON,
-    ext_modules=cythonize(ext_modules),
+    ext_modules=cythonize(ext_modules, annotate=True),
     classifiers=[
         'Development Status :: 4 - Beta',
         'Programming Language :: Python :: 3.7',

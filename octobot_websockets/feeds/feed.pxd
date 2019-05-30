@@ -18,7 +18,6 @@
 cdef class Feed:
     cdef str api_key
     cdef str api_secret
-    cdef str address
 
     cdef int timeout
     cdef int timeout_interval
@@ -33,6 +32,7 @@ cdef class Feed:
     cdef list pairs
     cdef list time_frames
     cdef list channels
+    cdef list sub_protocols
 
     cdef public dict callbacks
 
