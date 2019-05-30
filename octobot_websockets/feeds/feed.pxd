@@ -32,7 +32,6 @@ cdef class Feed:
     cdef list pairs
     cdef list time_frames
     cdef list channels
-    cdef list sub_protocols
 
     cdef public dict callbacks
 

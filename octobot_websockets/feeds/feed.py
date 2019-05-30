@@ -39,7 +39,6 @@ class Feed:
                  callbacks: dict = None,
                  api_key: str = None,
                  api_secret: str = None,
-                 sub_protocols: list = None,
                  time_frames: List[TimeFrames] = None,
                  book_interval: int = 1000,
                  timeout: int = 120,
@@ -56,7 +55,6 @@ class Feed:
 
         self.api_key = api_key
         self.api_secret = api_secret
-        self.sub_protocols = sub_protocols if sub_protocols is not None else []
 
         self.timeout = timeout
         self.timeout_interval = timeout_interval
@@ -132,7 +130,7 @@ class Feed:
 
             try:
                 async with websockets.connect(self.get_address(),
-                                              subprotocols=self.sub_protocols) as websocket:
+                                              subprotocols=self.get_sub_protocol()) as websocket:
                     self.websocket = websocket
                     await self.on_open()
                     self._watch_task = asyncio.create_task(self.__watch())
@@ -199,6 +197,9 @@ class Feed:
     @classmethod
     def get_address(cls) -> str:
         raise NotImplemented("get_address is not implemented")
+
+    def get_sub_protocol(self) -> list:
+        return []
 
     @classmethod
     def get_ccxt(cls) -> object:
