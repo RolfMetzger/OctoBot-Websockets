@@ -273,10 +273,10 @@ class Feed:
             Feeds.PORTFOLIO: cls.get_portfolio_feed()
         }
 
-    def get_pair_from_exchange(self, pair):
+    def get_pair_from_exchange(self, pair: str) -> str:
         return self.ccxt_client.find_market(pair)["symbol"]
 
-    def get_exchange_pair(self, pair):
+    def get_exchange_pair(self, pair: str) -> str:
         if pair in self.ccxt_client.symbols:
             try:
                 return self.ccxt_client.find_market(pair)["id"]

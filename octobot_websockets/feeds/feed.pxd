@@ -54,7 +54,5 @@ cdef class Feed:
     cdef list get_pairs(self)
     cdef double fix_timestamp(self, double ts)
     cdef double timestamp_normalize(self, double ts)
-    cdef str get_pair_from_exchange(self, str pair)
-    cdef str get_exchange_pair(self, str pair)
     cdef str feed_to_exchange(self, feed)
     cdef float safe_float(self, dict dictionary, key, default_value)
