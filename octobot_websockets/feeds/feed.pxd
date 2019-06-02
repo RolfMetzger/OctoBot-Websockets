@@ -29,20 +29,20 @@ cdef class Feed:
     cdef bint do_deltas
     cdef bint should_stop
 
-    cdef list pairs
-    cdef list time_frames
-    cdef list channels
+    cdef public list pairs
+    cdef public list time_frames
+    cdef public list channels
 
     cdef public dict callbacks
 
     # objects
-    cdef object loop
-    cdef object logger
-    cdef object websocket
-    cdef object ccxt_client
-    cdef object async_ccxt_client
+    cdef public object loop
+    cdef public object logger
+    cdef public object websocket
+    cdef public object websocket_task
+    cdef public object ccxt_client
+    cdef public object async_ccxt_client
     cdef object _watch_task
-    cdef object _websocket_task
     cdef object last_msg
 
     cdef __initialize(self, list pairs, list channels, dict callbacks)

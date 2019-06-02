@@ -73,7 +73,7 @@ class Feed:
         self.websocket = None
         self.ccxt_client = None
         self._watch_task = None
-        self._websocket_task = None
+        self.websocket_task = None
         self.last_msg = datetime.utcnow()
 
         self.__initialize(pairs, channels, callbacks)
@@ -104,9 +104,9 @@ class Feed:
 
     def start(self):
         if self.create_loop:
-            self._websocket_task = self.loop.run_until_complete(self.__connect())
+            self.websocket_task = self.loop.run_until_complete(self.__connect())
         else:
-            self._websocket_task = self.loop.create_task(self.__connect())
+            self.websocket_task = self.loop.create_task(self.__connect())
 
     async def __watch(self):
         if self.last_msg:
@@ -177,7 +177,7 @@ class Feed:
     def close(self):
         self.stop()
         self._watch_task.cancel()
-        self._websocket_task.cancel()
+        self.websocket_task.cancel()
 
     def get_auth(self):
         return []  # to be overwritten
