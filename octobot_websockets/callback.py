@@ -1,5 +1,5 @@
 # cython: language_level=3
-from octobot_websockets.constants import TimeFrames
+from octobot_commons.enums import TimeFrames
 
 
 class Callback(object):

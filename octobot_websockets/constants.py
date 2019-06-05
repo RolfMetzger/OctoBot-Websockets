@@ -16,7 +16,7 @@
 from enum import Enum
 
 PROJECT_NAME = "OctoBot-Websockets"
-VERSION = "1.0.4"  # major.minor.patch
+VERSION = "1.0.5"  # major.minor.patch
 
 BUY = 'buy'
 SELL = 'sell'
@@ -48,40 +48,3 @@ class Feeds(Enum):
     PORTFOLIO = 'portfolio'
     POSITION = 'position'
     UNSUPPORTED = 'unsupported'
-
-
-class TimeFrames(Enum):
-    ONE_MINUTE = "1m"
-    THREE_MINUTES = "3m"
-    FIVE_MINUTES = "5m"
-    FIFTEEN_MINUTES = "15m"
-    THIRTY_MINUTES = "30m"
-    ONE_HOUR = "1h"
-    TWO_HOURS = "2h"
-    THREE_HOURS = "3h"
-    FOUR_HOURS = "4h"
-    HEIGHT_HOURS = "8h"
-    TWELVE_HOURS = "12h"
-    ONE_DAY = "1d"
-    THREE_DAYS = "3d"
-    ONE_WEEK = "1w"
-    ONE_MONTH = "1M"
-
-
-TimeFramesMinutes = {
-    TimeFrames.ONE_MINUTE: 1,
-    TimeFrames.THREE_MINUTES: 3,
-    TimeFrames.FIVE_MINUTES: 5,
-    TimeFrames.FIFTEEN_MINUTES: 15,
-    TimeFrames.THIRTY_MINUTES: 30,
-    TimeFrames.ONE_HOUR: 60,
-    TimeFrames.TWO_HOURS: 120,
-    TimeFrames.THREE_HOURS: 180,
-    TimeFrames.FOUR_HOURS: 240,
-    TimeFrames.HEIGHT_HOURS: 480,
-    TimeFrames.TWELVE_HOURS: 720,
-    TimeFrames.ONE_DAY: 1440,
-    TimeFrames.THREE_DAYS: 4320,
-    TimeFrames.ONE_WEEK: 10080,
-    TimeFrames.ONE_MONTH: 43200,
-}
