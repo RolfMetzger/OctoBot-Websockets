@@ -1,3 +1,4 @@
+# cython: language_level=3
 #  Drakkar-Software OctoBot-Websockets
 #  Copyright (c) Drakkar-Software, All rights reserved.
 #
@@ -13,7 +14,5 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
-import logging
 
-# logging.getLogger('websockets.server').setLevel(logging.ERROR)
-logging.getLogger('websockets.protocol').setLevel(logging.ERROR)
+cpdef object get_feed_from_name(str name)

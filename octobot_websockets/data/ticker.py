@@ -26,7 +26,7 @@ class Ticker:
         self.timestamp = 0
 
     def handle_quote(self, bid_price, ask_price):
-        should_refresh:int = False
+        should_refresh: int = False
 
         if self.bid_price != bid_price:
             self.bid_price = bid_price

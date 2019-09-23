@@ -13,7 +13,11 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library.
-import logging
+from octobot_websockets.feeds.feed import Feed
 
-# logging.getLogger('websockets.server').setLevel(logging.ERROR)
-logging.getLogger('websockets.protocol').setLevel(logging.ERROR)
+
+def get_feed_from_name(name):
+    for feed in Feed.__subclasses__():
+        if name == feed.get_name():
+            return feed
+    return None

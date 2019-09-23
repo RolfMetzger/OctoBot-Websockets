@@ -30,7 +30,7 @@ packages_list = ["octobot_websockets.callback",
                  "octobot_websockets.constructors.candle_constructor",
                  "octobot_websockets.constructors.ticker_constructor",
                  "octobot_websockets.feeds.feed",
-                 "octobot_websockets.feeds.bitmex"]
+                 "octobot_websockets.api.feed_creator"]
 
 ext_modules = [
     Extension(package, [f"{package.replace('.', '/')}.py"])
