@@ -1,10 +1,11 @@
 from logging import DEBUG
 
+from octobot_commons.enums import TimeFrames
 from octobot_commons.logging.logging_util import get_logger, set_global_logger_level
 
 from octobot_websockets.callback import TradeCallback, TickerCallback, BookCallback, CandleCallback, KlineCallback
-from octobot_websockets.constants import TimeFrames, Feeds
-from octobot_websockets.feeds.bitmex import Bitmex
+from octobot_websockets.constants import Feeds
+from tentacles.Websockets.feeds.bitmex import Bitmex
 
 logger = get_logger("DEMO")
 

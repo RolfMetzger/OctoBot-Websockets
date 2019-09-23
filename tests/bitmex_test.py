@@ -4,7 +4,7 @@ import pytest
 
 from octobot_websockets.callback import TradeCallback, BookCallback
 from octobot_websockets.constants import Feeds
-from octobot_websockets.feeds.bitmex import Bitmex
+from tentacles.Websockets.feeds.bitmex import Bitmex
 
 pytestmark = pytest.mark.asyncio
 
