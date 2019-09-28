@@ -46,9 +46,6 @@ cdef class Feed:
     cdef object last_msg
 
     cdef __initialize(self, list pairs, list channels, dict callbacks)
-    cpdef start(self)
-    cpdef stop(self)
-    cpdef close(self)
     cdef on_close(self)
     cdef list get_auth(self)
     cdef list get_pairs(self)
@@ -56,3 +53,7 @@ cdef class Feed:
     cdef double timestamp_normalize(self, double ts)
     cdef str feed_to_exchange(self, feed)
     cdef float safe_float(self, dict dictionary, key, default_value)
+
+    cpdef start(self)
+    cpdef stop(self)
+    cpdef close(self)

@@ -50,11 +50,11 @@ class Feed:
         self.logger = get_logger(self.__class__.__name__)
 
         self.create_loop = create_loop
-        if create_loop:
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
-        else:
-            self.loop = asyncio.get_event_loop()
+        # if create_loop: TODO
+        #     self.loop = asyncio.new_event_loop()
+        #     asyncio.set_event_loop(self.loop)
+        # else:
+        self.loop = asyncio.get_event_loop()
 
         self.api_key = api_key
         self.api_secret = api_secret
@@ -140,7 +140,7 @@ class Feed:
                     # connection was successful, reset retry count and delay
                     delay = 1
                     await self.subscribe()
-                    await self._handler()
+                    await self.__handler()
             except (websockets.ConnectionClosed,
                     ConnectionAbortedError,
                     ConnectionResetError,
@@ -153,7 +153,7 @@ class Feed:
                 await asyncio.sleep(delay)
                 delay *= 2
 
-    async def _handler(self):
+    async def __handler(self):
         async for message in self.websocket:
             self.last_msg = datetime.utcnow()
             try:
