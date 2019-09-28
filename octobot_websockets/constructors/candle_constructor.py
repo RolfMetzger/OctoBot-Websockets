@@ -17,9 +17,10 @@
 import asyncio
 from time import time
 
+from octobot_commons.constants import MINUTE_TO_SECONDS
 from octobot_commons.enums import TimeFramesMinutes, TimeFrames
 
-from octobot_websockets.constants import MINUTE_TO_SECONDS, Feeds
+from octobot_websockets.constants import Feeds
 
 from octobot_websockets.data.candle import Candle
 from octobot_websockets.feeds.feed import Feed

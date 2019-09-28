@@ -24,11 +24,13 @@ from typing import List
 import ccxt
 from ccxt.base.exchange import Exchange as ccxtExchange
 import websockets
+
+from octobot_commons.constants import HOURS_TO_SECONDS
 from octobot_commons.enums import TimeFrames
 from octobot_commons.logging.logging_util import get_logger
 
 from octobot_websockets.callback import Callback
-from octobot_websockets.constants import HOURS_TO_SECONDS, Feeds
+from octobot_websockets.constants import Feeds
 
 
 class Feed:
