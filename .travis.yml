@@ -5,6 +5,7 @@ os: linux
 language: python
 cache: pip
 python: 3.7-dev
+cache: pip
 install:
   - python3 -m pip install --upgrade --only-binary=Cython -r requirements.txt -r dev_requirements.txt
 

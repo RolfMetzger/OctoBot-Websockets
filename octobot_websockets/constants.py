@@ -42,4 +42,5 @@ class Feeds(Enum):
     ORDERS = 'orders'
     PORTFOLIO = 'portfolio'
     POSITION = 'position'
+    TRADE = 'trade'
     UNSUPPORTED = 'unsupported'
