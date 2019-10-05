@@ -60,7 +60,7 @@ matrix:
             secure: GIqSprZpjJbI9xoVzpPOPJe75EUrsajvwKMnWY/+ihmQud0KiwYESIGLP96/Fj43juY2Gb8os2ASOxI9jmj5xpF8xxOoXE71te4hPAhX+9rAY7XMl67K+ow1E9P2cxa7Vbik6o07YLvzf6xWcUR6ThSckKDJVG7aRtfEJvQGKHCsvoiA0Vwe3GPG+lAIb/8ugIZ/4AY3Y9wpTsJVgjl51QISORJS+QQZBc5zezPWTy6dHFB/exmi8h4wQKZIp8586yswSCJyE0LO/SPniUNKYrAJ8RbroqfSMRNhOOMIaNof6vogrnlSBxLsYxToyODxr9BFm8g+8Ut0VtXtvTbFPyhgUpOjF6B03WZw8AhDnbfKZjfFhxv5WDQDmMqGy4LMxHgVDVU1lEJ1aoa2hdBRE4lOFHCEZfyEFq6IbogEZc1bn6FTbVSXk7CUM14RRK1KgIQ0+knN27ytyMhurr/EWYxr+Ez3xnHQl5xFQcXgF6V+juvjK6VizIEE3vDC6YYUKkuO2qrpiEYkKya1I2AGHPF549XKApOqRo/GgPcAPYo1gwyYfhXvd/iYo+FalK5TsdQKpZl3EKkIdJfk7PzpPAjRFRS1VvZsaxalPUSDMVueyVXffZSbtcBPdk3psvC6S924nTnOjVmHYMyvXuUDDMC8bzlsZgyMdrWLtRAer8E=
           skip_existing: true
           skip_cleanup: true
-          distributions: "sdist bdist_wheel "
+          distributions: "sdist"
           on:
             repo: $GH_REPO
             branch: $DEPLOY_BRANCH
