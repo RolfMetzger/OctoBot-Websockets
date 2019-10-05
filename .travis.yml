@@ -5,30 +5,64 @@ os: linux
 language: python
 cache: pip
 python: 3.7-dev
-cache: pip
+env:
+  global:
+    - GH_REPO=Drakkar-Software/OctoBot-Websockets
+    - DEPLOY_BRANCH=master
+    - PACKAGE_FOLDER=octobot_websockets
+
 install:
-  - python3 -m pip install --upgrade --only-binary=Cython -r requirements.txt -r dev_requirements.txt
+  - python3 -m pip install --upgrade --only-binary=Cython Cython
+  - python3 -m pip install --upgrade -r dev_requirements.txt
+  - python3 -m pip install OctoBot-Commons # TODO remove it
+  - python3 -m pip install OctoBot-Channels # TODO remove it
+  - python3 -m pip install -r requirements.txt # TODO remove it
 
 matrix:
   include:
-    - name: "Linux - Python 3 nightly"
+    - name: "Linux - Python 3.7-dev - Cython compilation"
+      stage: build
       os: linux
-      python: nightly
+      python: 3.7-dev
       language: python
       script:
-        - pytest -rw tests
+        - python3 setup.py build_ext --inplace
 
-deploy:
-  - provider: pypi
-    user:
-      secure: Sc5P4n7mhQC3VpynOYR+ni2tJFANv2a0kdRfhWm97YA5/ofUss7M9/35+pFmfcyK7cawhhrn+xLzaD7A5sxHTBD855LevakapWBQL8it8gW62MzG8YnCccf04FfDIKEBYtuLEuChN5Q91cMWgSWUvFhke3tQIEBMrMzbYxHTkWpsfV1KN6A7GXr1Ijc+cvM82JtPD5JfcrLGc7oI40+ELBOktOYXWT7+wZIE1uSUALaHXO0nJMUJjAQspHOGqQVePtq5o4a9faDxkrny6eiSMcq+rB1F6df1i3YaAXNim+StoLDJ1JABS12pfJ2frJjA3LxvaiKh3iJHJo2PGgjKMru3u06VM+B9all9rRPQWV4msDBpD5/GbQBjBKZQQJJ8tw0hnkXDVwTRsgsNlLb4VQNZYjsyw2zXrQdEofRgLCffhMFjf6vrZ1BwK8+f/6mNuPDGKsv3AUpNhA19CXRYvfw3wrQqRDNX3fBrHKxf2/Tbk8ZFSfPVziJlnTQCSNMF2K6s9TT0gkrK99bvGMqAlKmUvkH37BBht48+ZGtHEIXW0hRRDsDJEBnkL0ur+ABUwfqRierNz0xTr62rtiLBgdwAP/Pe8VMZrHWFYCBBlaKgVvSbgWdoEp91DkVop7Htn+zwG6pE82LHmTx9du9iWe6X60OJNjC4FRJumu3iibs=
-    password:
-      secure: GIqSprZpjJbI9xoVzpPOPJe75EUrsajvwKMnWY/+ihmQud0KiwYESIGLP96/Fj43juY2Gb8os2ASOxI9jmj5xpF8xxOoXE71te4hPAhX+9rAY7XMl67K+ow1E9P2cxa7Vbik6o07YLvzf6xWcUR6ThSckKDJVG7aRtfEJvQGKHCsvoiA0Vwe3GPG+lAIb/8ugIZ/4AY3Y9wpTsJVgjl51QISORJS+QQZBc5zezPWTy6dHFB/exmi8h4wQKZIp8586yswSCJyE0LO/SPniUNKYrAJ8RbroqfSMRNhOOMIaNof6vogrnlSBxLsYxToyODxr9BFm8g+8Ut0VtXtvTbFPyhgUpOjF6B03WZw8AhDnbfKZjfFhxv5WDQDmMqGy4LMxHgVDVU1lEJ1aoa2hdBRE4lOFHCEZfyEFq6IbogEZc1bn6FTbVSXk7CUM14RRK1KgIQ0+knN27ytyMhurr/EWYxr+Ez3xnHQl5xFQcXgF6V+juvjK6VizIEE3vDC6YYUKkuO2qrpiEYkKya1I2AGHPF549XKApOqRo/GgPcAPYo1gwyYfhXvd/iYo+FalK5TsdQKpZl3EKkIdJfk7PzpPAjRFRS1VvZsaxalPUSDMVueyVXffZSbtcBPdk3psvC6S924nTnOjVmHYMyvXuUDDMC8bzlsZgyMdrWLtRAer8E=
-    skip_existing: true
-    skip_cleanup: true
-    distributions: "sdist"
-    on:
-      repo: Drakkar-Software/OctoBot-Websockets
-      branch: master
-      tags: true
-      condition: $TRAVIS_OS_NAME = 'linux'
+    - name: "Linux - Python 3.7-dev - Python sources"
+      stage: test
+      os: linux
+      python: 3.7-dev
+      language: python
+      script:
+        - pytest --cov=. --cov-config=.coveragerc --durations=0 -rw tests
+      after_success:
+        - if [ $TRAVIS_PULL_REQUEST == "false" ]; then coveralls; fi
+
+    - name: "Linux - Python 3.7-dev - Installed"
+      stage: test
+      os: linux
+      python: 3.7-dev
+      language: python
+      script:
+        - python3 setup.py install
+        - rm -rf $PACKAGE_FOLDER
+        - pytest tests
+
+    - name: "Linux - Python 3 nightly - Deploy"
+      stage: deploy
+      script:
+        - ls
+      deploy:
+        - provider: pypi
+          user:
+            secure: Sc5P4n7mhQC3VpynOYR+ni2tJFANv2a0kdRfhWm97YA5/ofUss7M9/35+pFmfcyK7cawhhrn+xLzaD7A5sxHTBD855LevakapWBQL8it8gW62MzG8YnCccf04FfDIKEBYtuLEuChN5Q91cMWgSWUvFhke3tQIEBMrMzbYxHTkWpsfV1KN6A7GXr1Ijc+cvM82JtPD5JfcrLGc7oI40+ELBOktOYXWT7+wZIE1uSUALaHXO0nJMUJjAQspHOGqQVePtq5o4a9faDxkrny6eiSMcq+rB1F6df1i3YaAXNim+StoLDJ1JABS12pfJ2frJjA3LxvaiKh3iJHJo2PGgjKMru3u06VM+B9all9rRPQWV4msDBpD5/GbQBjBKZQQJJ8tw0hnkXDVwTRsgsNlLb4VQNZYjsyw2zXrQdEofRgLCffhMFjf6vrZ1BwK8+f/6mNuPDGKsv3AUpNhA19CXRYvfw3wrQqRDNX3fBrHKxf2/Tbk8ZFSfPVziJlnTQCSNMF2K6s9TT0gkrK99bvGMqAlKmUvkH37BBht48+ZGtHEIXW0hRRDsDJEBnkL0ur+ABUwfqRierNz0xTr62rtiLBgdwAP/Pe8VMZrHWFYCBBlaKgVvSbgWdoEp91DkVop7Htn+zwG6pE82LHmTx9du9iWe6X60OJNjC4FRJumu3iibs=
+          password:
+            secure: GIqSprZpjJbI9xoVzpPOPJe75EUrsajvwKMnWY/+ihmQud0KiwYESIGLP96/Fj43juY2Gb8os2ASOxI9jmj5xpF8xxOoXE71te4hPAhX+9rAY7XMl67K+ow1E9P2cxa7Vbik6o07YLvzf6xWcUR6ThSckKDJVG7aRtfEJvQGKHCsvoiA0Vwe3GPG+lAIb/8ugIZ/4AY3Y9wpTsJVgjl51QISORJS+QQZBc5zezPWTy6dHFB/exmi8h4wQKZIp8586yswSCJyE0LO/SPniUNKYrAJ8RbroqfSMRNhOOMIaNof6vogrnlSBxLsYxToyODxr9BFm8g+8Ut0VtXtvTbFPyhgUpOjF6B03WZw8AhDnbfKZjfFhxv5WDQDmMqGy4LMxHgVDVU1lEJ1aoa2hdBRE4lOFHCEZfyEFq6IbogEZc1bn6FTbVSXk7CUM14RRK1KgIQ0+knN27ytyMhurr/EWYxr+Ez3xnHQl5xFQcXgF6V+juvjK6VizIEE3vDC6YYUKkuO2qrpiEYkKya1I2AGHPF549XKApOqRo/GgPcAPYo1gwyYfhXvd/iYo+FalK5TsdQKpZl3EKkIdJfk7PzpPAjRFRS1VvZsaxalPUSDMVueyVXffZSbtcBPdk3psvC6S924nTnOjVmHYMyvXuUDDMC8bzlsZgyMdrWLtRAer8E=
+          skip_existing: true
+          skip_cleanup: true
+          distributions: "sdist bdist_wheel "
+          on:
+            repo: $GH_REPO
+            branch: $DEPLOY_BRANCH
+            tags: true
+            condition: $TRAVIS_OS_NAME = 'linux'
