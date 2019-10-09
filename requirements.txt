@@ -2,5 +2,4 @@
 OctoBot-Commons
 
 ccxt
-requests
 websockets

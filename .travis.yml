@@ -10,10 +10,11 @@ env:
     - GH_REPO=Drakkar-Software/OctoBot-Websockets
     - DEPLOY_BRANCH=master
     - PACKAGE_FOLDER=octobot_websockets
+    - secure: arlSx4F6rn1H8Do9+WoZlZ16SkimBrTmw39r4LXe4tHoJK/kiFphRcQlKR3FGa47OGohCBqEVFKPYgeZd7i4j6pL+LMwgkHEZI/B88DD8NGnuEHbu9FCWssDjhQylxQEeZ6uywTTAQI1yYp0vlme2jAnuvCutQoFvVSlOP5To3Dkztrh78OAS8GZDJ/W3C9WT3y333eaOScDUbhfNjbujc1ke55onld8k6FFxp1QT4bXs9XGHpxGb2U7AhTe2XFawJ3VnTP4SVhQtlkuon8BCuphAKFOJWtpI/56B2SB+QlHPZE3euztlkbQzqR3ZLgO/lL1LNkTJDpWnzufytZWIGRKCggCckliC1bQGtmjlK37cqqbycw4xgCLhrFcO8EkMxwy+GNMqOPDgQ7RcpKxmQRgUIHzzSgZllAJdSPXLrJCVdT5BcEsTWMgTWnSMHv5k1arWmGwSfzXlTgnRkhV2jUdhbTkZOHQVhqAe5Sem/UnSnNGsDFI5soiie0leTm/1N9Css6SBWh7SeZzT+QKcA+Tzm5iMc1IttN/FQx0G1H13Nx/FXOY0MYCkwb71AB+76yA+hy1bCQUiGX8GT4i+yBa27nk4grBzfpHBJIbNmq+/m1uzfevEGW2ikk+CjAu4juJVHzKEe/IZIUby6mRtiRuPgem7vkGs/ESTHtaWbA=
+    - secure: VwaVY9msyZi1TwpPMZjc7aSK9ihqs9+GU6AEZEG5KzWwYvHodRu4iX/gg+50Fn4JSAw9zhvtzcS5V3S0ezFYfXpotqswQ5532Z0iywgB4G/eWgtEhQ7sMiyrFTcOTVI1SHpAvEwoQCSTVWZZ5xGQCTGveGWV9VqygF9huEbxpsQd1gGOQQDPpCYkmx8HNm/JIHq0KCYeVnYOTJf3dHDvzovuUSmIljUcdQtAJyKPSlGLeN/SMPhJ6Wuog9UGvS7/JSrQfyE1zjgWMuJdy9N4myeik22dNOH+Lzf4z/J2OX8EPKXBMiTu5X714bDv5tYjomyMEtk7kzk71PKFywZJovKrL+SBRa7lmfsGbA5ndhe8tULC2xLun5pQHSXawZqpY/SP1xFoXOzILaqWQq1dLZu4D2t032AoaZoxi6wsZA6dNr88iF0o0BsnHFFzAQYBtiMO859a4MiD7QS0s1+PhsBcW9X5QBeX59U6GDPGiWjzj5Zhiunq55jLMBA4lWAuu030EyUn5B6kzJ4nhLYAF04TPt8iwHYAjKfQTaH0v5PB7ZEwpzkxXotiwIy5N+NZqlq8Ok4TjOZqVxKrcLkhR87erkd+Ib37ZH7gmwjh8CuCkrtl45butfQ5U1DQsbY7GWANj61r3NbzpuTzU1l3v6/97NOdhIfbdgq4JuhY+fI=
 
 install:
-  - python3 -m pip install --upgrade -r dev_requirements.txt
-  - python3 -m pip install --upgrade -r requirements.txt
+  - python3 -m pip install --prefer-binary -r dev_requirements.txt -r requirements.txt
 
 matrix:
   include:
@@ -63,3 +64,19 @@ matrix:
             branch: $DEPLOY_BRANCH
             tags: true
             condition: $TRAVIS_OS_NAME = 'linux'
+        - provider: script
+          script: docker run -it -e PYPI_USERNAME=$PYPI_USERNAME -e PYPI_PASSWORD=$PYPI_PASSWORD -v $(pwd):/project drakkarsoftware/octobot-pypi-deploy:i686 "i686" "cp37-cp37m" "cp37"
+          skip_cleanup: true
+          on:
+            repo: "$GH_REPO"
+            branch: "$DEPLOY_BRANCH"
+            tags: true
+            condition: "$TRAVIS_OS_NAME = 'linux'"
+        - provider: script
+          script: docker run -it -e PYPI_USERNAME=$PYPI_USERNAME -e PYPI_PASSWORD=$PYPI_PASSWORD -v $(pwd):/project drakkarsoftware/octobot-pypi-deploy:x86_x64 "x86_64" "cp37-cp37m" "cp37"
+          skip_cleanup: true
+          on:
+            repo: "$GH_REPO"
+            branch: "$DEPLOY_BRANCH"
+            tags: true
+            condition: "$TRAVIS_OS_NAME = 'linux'"
