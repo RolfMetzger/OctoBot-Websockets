@@ -2,10 +2,10 @@
 cython==0.29.13
 
 # Drakkar-Software requirements
-OctoBot-Commons==1.1.46
+OctoBot-Commons==1.1.48
 
 # Exchange connection requirements
-ccxt==1.18.1242
+ccxt==1.18.1353
 
 # WS core requirements
 websockets==8.0.2
