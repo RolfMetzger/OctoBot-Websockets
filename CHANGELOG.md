@@ -4,8 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.6] - 2019-12-14
+### Updated
+**Requirements**
+- Commons version to 1.1.51
+- ccxt version to 1.20.80
+
 ## [1.1.5] - 2019-11-09
-## Updated
+### Updated
 **Requirements**
 - Cython version to 0.29.14
 - Commons version to 1.1.49
@@ -13,11 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ccxt version to 1.19.17
 
 ## [1.1.4] - 2019-10-29
-## Added
+### Added
 - OSX support
 
 ## [1.1.3] - 2019-10-09
-## Added
+### Added
 - PyPi manylinux deployment
 
 ## [1.1.2] - 2019-10-08
