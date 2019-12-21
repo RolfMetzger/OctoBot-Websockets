@@ -277,12 +277,12 @@ class Feed:
         }
 
     def get_pair_from_exchange(self, pair: str) -> str:
-        return self.ccxt_client.find_market(pair)["symbol"]
+        return self.ccxt_client.market(pair)["symbol"]
 
     def get_exchange_pair(self, pair: str) -> str:
         if pair in self.ccxt_client.symbols:
             try:
-                return self.ccxt_client.find_market(pair)["id"]
+                return self.ccxt_client.market(pair)["id"]
             except KeyError:
                 raise KeyError(f'{pair} is not supported on {self.get_name()}')
         else:
