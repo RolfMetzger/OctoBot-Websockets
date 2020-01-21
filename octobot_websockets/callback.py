@@ -33,7 +33,7 @@ class TradeCallback(Callback):
                        amount: float,
                        price: float,
                        timestamp: int):
-        await self.callback(feed, symbol, timestamp, side, amount, price)
+        await self.callback(feed, pair=symbol, timestamp=timestamp, side=side, amount=amount, price=price)
 
 
 class TickerCallback(Callback):
@@ -44,7 +44,7 @@ class TickerCallback(Callback):
                        ask: float,
                        last: float,
                        timestamp: int):
-        await self.callback(feed, symbol, bid, ask, last, timestamp)
+        await self.callback(feed, pair=symbol, bid=bid, ask=ask, last=last, timestamp=timestamp)
 
 
 class CandleCallback(Callback):
@@ -58,7 +58,8 @@ class CandleCallback(Callback):
                        high: float,
                        low: float,
                        opn: float):
-        await self.callback(feed, symbol, timestamp, time_frame, close, volume, high, low, opn)
+        await self.callback(feed, pair=symbol, timestamp=timestamp, time_frame=time_frame,
+                            close=close, volume=volume, high=high, low=low, opn=opn)
 
 
 class KlineCallback(Callback):
@@ -72,7 +73,8 @@ class KlineCallback(Callback):
                        high: float,
                        low: float,
                        opn: float):
-        await self.callback(feed, symbol, timestamp, time_frame, close, volume, high, low, opn)
+        await self.callback(feed, pair=symbol, timestamp=timestamp, time_frame=time_frame,
+                            close=close, volume=volume, high=high, low=low, opn=opn)
 
 
 class BookCallback(Callback):
@@ -86,7 +88,7 @@ class BookCallback(Callback):
                        asks: list,
                        bids: list,
                        timestamp: int):
-        await self.callback(feed, symbol, asks, bids, timestamp)
+        await self.callback(feed, pair=symbol, asks=asks, bids=bids, timestamp=timestamp)
 
 
 class OrdersCallback(Callback):
@@ -102,7 +104,8 @@ class OrdersCallback(Callback):
                        order_id: int,
                        is_canceled: bool,
                        is_filled: bool):
-        await self.callback(feed, symbol, price, quantity, order_id, is_canceled, is_filled)
+        await self.callback(feed, pair=symbol, price=price, quantity=quantity,
+                            order_id=order_id, is_canceled=is_canceled, is_filled=is_filled)
 
 
 class PositionCallback(Callback):
@@ -121,14 +124,14 @@ class PositionCallback(Callback):
                        liquidation_price: float,
                        timestamp: int):
         await self.callback(feed,
-                            symbol,
-                            entry_price,
-                            cost,
-                            quantity,
-                            pnl_percent,
-                            mark_price,
-                            liquidation_price,
-                            timestamp)
+                            pair=symbol,
+                            entry_price=entry_price,
+                            cost=cost,
+                            quantity=quantity,
+                            pnl_percent=pnl_percent,
+                            mark_price=mark_price,
+                            liquidation_price=liquidation_price,
+                            timestamp=timestamp)
 
 
 class UpdatedBookCallback(Callback):
@@ -160,7 +163,7 @@ class UpdatedBookCallback(Callback):
         DEL - price levels should be deleted
         UPD - prices should have the quantity set to size (these are not price deltas)
         """
-        await self.callback(feed, symbol, delta)
+        await self.callback(feed, pair=symbol, delta=delta)
 
 
 class FundingCallback(Callback):

@@ -252,6 +252,10 @@ class Feed:
     def get_position_feed(cls) -> str:
         raise NotImplemented("get_position_feed is not implemented")
 
+    @classmethod
+    def get_mark_price_feed(cls) -> str:
+        raise NotImplemented("get_mark_price_feed is not implemented")
+
     def get_pairs(self):
         return self.ccxt_client.symbols
 

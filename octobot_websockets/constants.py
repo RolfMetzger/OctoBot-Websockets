@@ -16,7 +16,7 @@
 from enum import Enum
 
 PROJECT_NAME = "OctoBot-Websockets"
-VERSION = "1.1.7"  # major.minor.patch
+VERSION = "1.1.8"  # major.minor.patch
 
 BUY = 'buy'
 SELL = 'sell'
@@ -39,6 +39,7 @@ class Feeds(Enum):
     CANDLE = 'candle'
     KLINE = 'kline'
     FUNDING = 'funding'
+    MARK_PRICE = 'mark_price'
     ORDERS = 'orders'
     PORTFOLIO = 'portfolio'
     POSITION = 'position'
