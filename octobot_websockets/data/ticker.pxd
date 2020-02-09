@@ -18,10 +18,10 @@
 cdef class Ticker:
     cdef public timestamp
     cdef public bint ready
-    cdef public float bid_price
-    cdef public float ask_price
-    cdef public float last_price
+    cdef public double bid_price
+    cdef public double ask_price
+    cdef public double last_price
 
-    cpdef bint handle_quote(self, float bid_price, float ask_price)
-    cpdef bint handle_recent_trade(self, float last_price)
+    cpdef bint handle_quote(self, double bid_price, double ask_price)
+    cpdef bint handle_recent_trade(self, double last_price)
     cpdef bint is_ready(self)

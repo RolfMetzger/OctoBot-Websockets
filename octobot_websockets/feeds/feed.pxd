@@ -52,7 +52,7 @@ cdef class Feed:
     cdef double fix_timestamp(self, double ts)
     cdef double timestamp_normalize(self, double ts)
     cdef str feed_to_exchange(self, feed)
-    cdef float safe_float(self, dict dictionary, key, default_value)
+    cdef double safe_float(self, dict dictionary, key, default_value)
 
     cpdef start(self)
     cpdef stop(self)

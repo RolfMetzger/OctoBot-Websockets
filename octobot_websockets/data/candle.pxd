@@ -19,12 +19,12 @@ cdef class Candle:
     cdef double time_frame_size
     cdef public double start_timestamp
     cdef public double close_timestamp
-    cdef public float high
-    cdef public float low
-    cdef public float opn
-    cdef public float close
-    cdef public float vol
+    cdef public double high
+    cdef public double low
+    cdef public double opn
+    cdef public double close
+    cdef public double vol
     cdef public bint is_closed
 
-    cpdef handle_candle_update(self, float price, float vol)
+    cpdef handle_candle_update(self, double price, double vol)
     cpdef on_close(self)
