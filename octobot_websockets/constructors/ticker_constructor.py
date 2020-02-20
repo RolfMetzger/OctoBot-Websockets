@@ -27,13 +27,13 @@ class TickerConstructor:
 
     async def handle_quote(self, bid_price: float, ask_price: float):
         if self.ticker.handle_quote(bid_price, ask_price):
-            await self.__handle_refresh()
+            await self._handle_refresh()
 
     async def handle_recent_trade(self, last_price: float):
         if self.ticker.handle_recent_trade(last_price):
-            await self.__handle_refresh()
+            await self._handle_refresh()
 
-    async def __handle_refresh(self):
+    async def _handle_refresh(self):
         if self.ticker.is_ready():
             await self.feed.callbacks[Feeds.TICKER](feed=self.feed.get_name(),
                                                     symbol=self.symbol,

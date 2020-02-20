@@ -79,9 +79,9 @@ class Feed:
         self.websocket_task = None
         self.last_msg = datetime.utcnow()
 
-        self.__initialize(pairs, channels, callbacks)
+        self._initialize(pairs, channels, callbacks)
 
-    def __initialize(self, pairs, channels, callbacks):
+    def _initialize(self, pairs, channels, callbacks):
         self.async_ccxt_client = self.get_ccxt_async_client()()
         self.ccxt_client = getattr(ccxt, self.get_name())()
         self.ccxt_client.load_markets()
@@ -107,22 +107,22 @@ class Feed:
 
     def start(self):
         if self.create_loop:
-            self.websocket_task = self.loop.run_until_complete(self.__connect())
+            self.websocket_task = self.loop.run_until_complete(self._connect())
         else:
-            self.websocket_task = self.loop.create_task(self.__connect())
+            self.websocket_task = self.loop.create_task(self._connect())
 
-    async def __watch(self):
+    async def _watch(self):
         if self.last_msg:
             if datetime.utcnow() - timedelta(seconds=self.timeout) > self.last_msg:
                 self.logger.warning("No messages received within timeout, restarting connection")
                 print("reconnect")
-                await self.__reconnect()
+                await self._reconnect()
         await asyncio.sleep(self.timeout_interval)
 
-    async def __on_error(self, error):
+    async def _on_error(self, error):
         self.logger.error(f"Error : {error}")
 
-    async def __connect(self):
+    async def _connect(self):
         """ Connect to websocket feeds """
         delay: int = 1
         self._watch_task = None
@@ -136,11 +136,11 @@ class Feed:
                                               subprotocols=self.get_sub_protocol()) as websocket:
                     self.websocket = websocket
                     await self.on_open()
-                    self._watch_task = asyncio.create_task(self.__watch())
+                    self._watch_task = asyncio.create_task(self._watch())
                     # connection was successful, reset retry count and delay
                     delay = 1
                     await self.subscribe()
-                    await self.__handler()
+                    await self._handler()
             except (websockets.ConnectionClosed,
                     ConnectionAbortedError,
                     ConnectionResetError,
@@ -153,7 +153,7 @@ class Feed:
                 await asyncio.sleep(delay)
                 delay *= 2
 
-    async def __handler(self):
+    async def _handler(self):
         async for message in self.websocket:
             self.last_msg = datetime.utcnow()
             try:
@@ -164,9 +164,9 @@ class Feed:
                 # retries the connection
                 raise
 
-    async def __reconnect(self):
+    async def _reconnect(self):
         self.stop()
-        await self.__connect()
+        await self._connect()
 
     async def on_open(self):
         self.logger.info("Connected")

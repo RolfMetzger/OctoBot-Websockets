@@ -45,7 +45,7 @@ cdef class Feed:
     cdef object _watch_task
     cdef object last_msg
 
-    cdef __initialize(self, list pairs, list channels, dict callbacks)
+    cdef _initialize(self, list pairs, list channels, dict callbacks)
     cdef on_close(self)
     cdef list get_auth(self)
     cdef list get_pairs(self)
