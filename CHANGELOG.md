@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.11] - 2020-03-12
+### Updated
+**Requirements**
+- CCXT version to 1.24.4
+
 ## [1.1.10] - 2020-03-07
 ### Updated
 **Requirements**
