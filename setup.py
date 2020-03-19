@@ -43,8 +43,6 @@ packages_list = ["octobot_websockets.callback",
                  "octobot_websockets.data.book",
                  "octobot_websockets.data.candle",
                  "octobot_websockets.data.ticker",
-                 "octobot_websockets.constructors.candle_constructor",
-                 "octobot_websockets.constructors.ticker_constructor",
                  "octobot_websockets.feeds.feed",
                  "octobot_websockets.api.feed_creator"]
 

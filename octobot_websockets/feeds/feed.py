@@ -22,6 +22,7 @@ from datetime import datetime, timedelta
 from typing import List
 
 import ccxt
+from ccxt.base.errors import BadSymbol
 from ccxt.base.exchange import Exchange as ccxtExchange
 import websockets
 
@@ -42,11 +43,13 @@ class Feed:
                  callbacks: dict = None,
                  api_key: str = None,
                  api_secret: str = None,
+                 api_password: str = None,
                  time_frames: List[TimeFrames] = None,
                  book_interval: int = 1000,
                  timeout: int = 120,
                  timeout_interval: int = 5,
-                 create_loop: bool = True):
+                 create_loop: bool = True,
+                 use_testnet: bool = False):
         self.logger = get_logger(self.__class__.__name__)
 
         self.create_loop = create_loop
@@ -58,6 +61,9 @@ class Feed:
 
         self.api_key = api_key
         self.api_secret = api_secret
+        self.api_password = api_password
+
+        self.use_testnet = use_testnet
 
         self.timeout = timeout
         self.timeout_interval = timeout_interval
@@ -65,6 +71,7 @@ class Feed:
         self.updates = 0
 
         self.is_connected = False
+        self.is_authenticated = False
         self.do_deltas = False
         self.should_stop = False
 
@@ -95,8 +102,11 @@ class Feed:
                           Feeds.L3_BOOK: Callback(None),
                           Feeds.CANDLE: Callback(None),
                           Feeds.KLINE: Callback(None),
+                          Feeds.FUNDING: Callback(None),
+                          Feeds.MARK_PRICE: Callback(None),
                           Feeds.PORTFOLIO: Callback(None),
                           Feeds.ORDERS: Callback(None),
+                          Feeds.TRADE: Callback(None),
                           Feeds.POSITION: Callback(None)}
 
         if callbacks:
@@ -119,9 +129,6 @@ class Feed:
                 await self._reconnect()
         await asyncio.sleep(self.timeout_interval)
 
-    async def _on_error(self, error):
-        self.logger.error(f"Error : {error}")
-
     async def _connect(self):
         """ Connect to websocket feeds """
         delay: int = 1
@@ -132,19 +139,19 @@ class Feed:
                 delay = self.MAX_DELAY
 
             try:
-                async with websockets.connect(self.get_address(),
-                                              subprotocols=self.get_sub_protocol()) as websocket:
+                async with websockets.connect(self.get_ws_endpoint()
+                                              if not self.use_testnet else self.get_ws_testnet_endpoint()) as websocket:
                     self.websocket = websocket
-                    await self.on_open()
+                    self.on_open()
                     self._watch_task = asyncio.create_task(self._watch())
                     # connection was successful, reset retry count and delay
                     delay = 1
+                    if self.api_key and self.api_secret:
+                        await self.do_auth()
+
                     await self.subscribe()
                     await self._handler()
-            except (websockets.ConnectionClosed,
-                    ConnectionAbortedError,
-                    ConnectionResetError,
-                    CancelledError) as e:
+            except (websockets.ConnectionClosed, ConnectionAbortedError, ConnectionResetError, CancelledError) as e:
                 self.logger.warning(f"{self.get_name()} encountered connection issue ({e}) - reconnecting...")
                 await asyncio.sleep(delay)
                 delay *= 2
@@ -152,6 +159,7 @@ class Feed:
                 self.logger.error(f"{self.get_name()} encountered an exception ({e}), reconnecting...")
                 await asyncio.sleep(delay)
                 delay *= 2
+                raise e
 
     async def _handler(self):
         async for message in self.websocket:
@@ -168,11 +176,25 @@ class Feed:
         self.stop()
         await self._connect()
 
-    async def on_open(self):
+    def on_open(self):
         self.logger.info("Connected")
 
+    def on_auth(self, status):
+        if status:
+            self.is_authenticated = True
+            self.logger.info("Authenticated")
+        else:
+            self.is_authenticated = False
+            self.logger.warning("Authentication failed")
+
+    def on_pong(self):
+        self.logger.debug("Pong received")
+
     def on_close(self):
-        self.logger.info('Websocket Closed')
+        self.logger.info('Closed')
+
+    def on_error(self, error):
+        self.logger.error(f"Error : {error}")
 
     def stop(self):
         self.websocket.close()
@@ -181,9 +203,21 @@ class Feed:
         self.stop()
         self._watch_task.cancel()
         self.websocket_task.cancel()
+        self.is_connected = False
+        self.websocket.close()
+        self.on_close()
 
-    def get_auth(self):
-        return []  # to be overwritten
+    @abstractmethod
+    async def do_auth(self):
+        NotImplementedError("on_message is not implemented")
+
+    @abstractmethod
+    async def ping(self):
+        NotImplementedError("on_message is not implemented")
+
+    @abstractmethod
+    async def _send_command(self, command, args=None):
+        raise NotImplementedError("_send_command is not implemented")
 
     @abstractmethod
     async def on_message(self, message):
@@ -198,15 +232,20 @@ class Feed:
         raise NotImplemented("get_name is not implemented")
 
     @classmethod
-    def get_address(cls) -> str:
-        raise NotImplemented("get_address is not implemented")
-
-    def get_sub_protocol(self) -> list:
-        return []
+    def get_ws_endpoint(cls) -> str:
+        raise NotImplemented("get_ws_endpoint is not implemented")
 
     @classmethod
-    def get_ccxt(cls) -> object:
-        getattr(ccxt, cls.get_name())
+    def get_ws_testnet_endpoint(cls) -> str:
+        raise NotImplemented("get_ws_testnet_endpoint is not implemented")
+
+    @classmethod
+    def get_endpoint(cls) -> str:
+        raise NotImplemented("get_endpoint is not implemented")
+
+    @classmethod
+    def get_testnet_endpoint(cls):
+        raise NotImplemented("get_testnet_endpoint is not implemented")
 
     @classmethod
     def get_ccxt_async_client(cls):
@@ -256,8 +295,9 @@ class Feed:
     def get_mark_price_feed(cls) -> str:
         raise NotImplemented("get_mark_price_feed is not implemented")
 
-    def get_pairs(self):
-        return self.ccxt_client.symbols
+    @classmethod
+    def get_execution_feed(cls) -> str:
+        raise NotImplemented("get_execution_feed is not implemented")
 
     def fix_timestamp(self, ts):
         return ts
@@ -269,6 +309,7 @@ class Feed:
     def get_feeds(cls) -> dict:
         return {
             Feeds.FUNDING: cls.get_funding_feed(),
+            Feeds.MARK_PRICE: cls.get_mark_price_feed(),
             Feeds.L2_BOOK: cls.get_L2_book_feed(),
             Feeds.L3_BOOK: cls.get_L3_book_feed(),
             Feeds.TRADES: cls.get_trades_feed(),
@@ -277,11 +318,36 @@ class Feed:
             Feeds.TICKER: cls.get_ticker_feed(),
             Feeds.POSITION: cls.get_position_feed(),
             Feeds.ORDERS: cls.get_orders_feed(),
+            Feeds.TRADE: cls.get_execution_feed(),
             Feeds.PORTFOLIO: cls.get_portfolio_feed()
         }
 
+    def feed_to_exchange(self, feed):
+        ret: str = self.get_feeds()[feed]
+        if ret == Feeds.UNSUPPORTED.value:
+            self.logger.error("{} is not supported on {}".format(feed, self.get_name()))
+            raise ValueError(f"{feed} is not supported on {self.get_name()}")
+        return ret
+
+    """
+    CCXT methods
+    """
+    @classmethod
+    def get_ccxt(cls) -> object:
+        getattr(ccxt, cls.get_name())
+
+    def get_pairs(self):
+        return self.ccxt_client.symbols
+
     def get_pair_from_exchange(self, pair: str) -> str:
-        return self.ccxt_client.market(pair)["symbol"]
+        try:
+            return self.ccxt_client.market(pair)["symbol"]
+        except BadSymbol:
+            try:
+                return self.ccxt_client.markets_by_id[pair]["symbol"]
+            except KeyError:
+                self.logger.error(f"Failed to get market of {pair}")
+                return None
 
     def get_exchange_pair(self, pair: str) -> str:
         if pair in self.ccxt_client.symbols:
@@ -291,13 +357,6 @@ class Feed:
                 raise KeyError(f'{pair} is not supported on {self.get_name()}')
         else:
             raise ValueError(f'{pair} is not supported on {self.get_name()}')
-
-    def feed_to_exchange(self, feed):
-        ret: str = self.get_feeds()[feed]
-        if ret == Feeds.UNSUPPORTED.value:
-            self.logger.error("{} is not supported on {}".format(feed, self.get_name()))
-            raise ValueError(f"{feed} is not supported on {self.get_name()}")
-        return ret
 
     def safe_float(self, dictionary, key, default_value):
         return ccxtExchange.safe_float(dictionary, key, default_value)

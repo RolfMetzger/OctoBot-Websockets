@@ -9,3 +9,6 @@ ccxt==1.24.4
 
 # WS core requirements
 websockets==8.1
+
+# other requirements
+pandas==1.0.3

@@ -17,7 +17,13 @@
 
 cdef class Book:
     cdef public timestamp
-    cdef public list bids
-    cdef public list asks
 
-    cpdef handle_book_update(self, list bids, list asks)
+    cdef public object orders
+
+    cpdef void reset(self)
+    cpdef void handle_book_update(self, list orders, str id_key=*)
+    cpdef void handle_book_delta_delete(self, list orders, str id_key=*)
+    cpdef void handle_book_delta_update(self, list orders, str id_key=*)
+    cpdef void handle_book_delta_insert(self, list orders, str id_key=*)
+    cpdef list get_asks(self, str side=*)
+    cpdef list get_bids(self, str side=*)

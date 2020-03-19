@@ -18,6 +18,7 @@
 cdef class Feed:
     cdef str api_key
     cdef str api_secret
+    cdef str api_password
 
     cdef int timeout
     cdef int timeout_interval
@@ -28,6 +29,8 @@ cdef class Feed:
     cdef bint is_connected
     cdef bint do_deltas
     cdef bint should_stop
+    cdef bint use_testnet
+    cdef bint is_authenticated
 
     cdef public list pairs
     cdef public list time_frames
